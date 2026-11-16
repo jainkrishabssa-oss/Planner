@@ -17,7 +17,7 @@ const DOWS=['sunday','monday','tuesday','wednesday','thursday','friday','saturda
 let today=iso(new Date());
 let tasks=new Map(), be=null, mode='loading', pending=false, flash='', clearArm=0;
 let view=ls.get('mp.view','today'), area=ls.get('mp.area','all'), openId=null, openProj=null;
-let draft={when:'today',custom:'',area:ls.get('mp.newArea','work'),pri:'normal',project:''};
+let draft={when:'today',custom:'',area:ls.get('mp.newArea','work'),pri:'normal',project:'',kind:'task'};
 const CATS=['Client','Internal','Admin','Planning','Finance','Health','Home','Travel','Learning'];
 let calMode=ls.get('mp.cal','week'), mCur=null, yCur=null, selDay=null;
 let routines=new Map(), wOff=0, rOpen=null, rdelArm=0;
@@ -34,7 +34,11 @@ function ensureProject(title,ar){if(!title||[...projects.values()].some(p=>same(
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const all=()=>[...tasks.values()].filter(t=>area==='all'||t.area===area);
 const key=t=>t.due||'9999-99-99';
-const sortT=(a,b)=>key(a)<key(b)?-1:key(a)>key(b)?1:(PR[a.priority]-PR[b.priority])||((a.created||0)-(b.created||0));
+const tkey=t=>t.time||'99:99';
+const sortT=(a,b)=>key(a)<key(b)?-1:key(a)>key(b)?1:tkey(a)<tkey(b)?-1:tkey(a)>tkey(b)?1:(PR[a.priority]-PR[b.priority])||((a.created||0)-(b.created||0));
+const fmtTime=t=>{if(!t)return '';const[h,m]=t.split(':').map(Number);return new Date(2000,0,1,h,m).toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})};
+const PIN='<svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="10" r="2.3" fill="currentColor"/></svg>';
+const mapUrl=l=>'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(l);
 
 function setSync(text,cls){const s=$('#sync');s.className='sync '+(cls||'');s.lastElementChild.textContent=text}
 function toast(msg,undo){const t=$('#toast');t.firstElementChild.textContent=msg;const b=t.lastElementChild;b.hidden=!undo;b.onclick=()=>{t.hidden=true;undo&&undo()};t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>t.hidden=true,5000)}
@@ -49,12 +53,17 @@ function parseQ(s){const o={};
   s=s.replace(/(^|\s)!{1,3}(?=\s|$)/g,(m,a)=>{o.priority='critical';return a});
   s=s.replace(/(^|\s)(today|tomorrow|tmrw)(?=\s|$)/i,(m,a,w)=>{o.due=w.toLowerCase()==='today'?today:addDays(today,1);return a});
   s=s.replace(/(^|\s)(?:on\s+)?(sunday|monday|tuesday|wednesday|thursday|friday|saturday)(?=\s|$)/i,(m,a,w)=>{const n=(DOWS.indexOf(w.toLowerCase())-pd(today).getDay()+7)%7||7;o.due=addDays(today,n);return a});
+  s=s.replace(/(^|\s)(?:at\s+)?(\d{1,2})(?::([0-5]\d))?\s*(am|pm)(?=\s|$)/i,(m,a,h,mi,ap)=>{h=+h%12+(ap.toLowerCase()==='pm'?12:0);if(h<24)o.time=pad(h)+':'+(mi||'00');return a});
+  if(!o.time)s=s.replace(/(^|\s)(?:at\s+)?([01]?\d|2[0-3]):([0-5]\d)(?=\s|$)/,(m,a,h,mi)=>{o.time=pad(+h)+':'+mi;return a});
   o.title=s.replace(/\s+/g,' ').trim();return o}
 
 function dueLabel(t){if(!t.due)return '';const d=diff(today,t.due);
   if(t.status!=='done'&&d<0)return `<span class="od">Overdue ${-d}d &middot; ${fmt(t.due,{month:'short',day:'numeric'})}</span>`;
   if(d===0)return '<span class="td">Today</span>';if(d===1)return '<span>Tomorrow</span>';return `<span>${fmt(t.due)}</span>`}
 function row(t){const done=t.status==='done';const m=[dueLabel(t)];
+  if(t.kind==='visit')m.unshift('<span class="pill v">Visit</span>');
+  if(t.time)m.push(`<span class="tm">${fmtTime(t.time)}</span>`);
+  if(t.location)m.push(`<a class="loc" href="${mapUrl(t.location)}" target="_blank" rel="noopener" title="Open in Google Maps">${PIN}${esc(t.location)}</a>`);
   if(!done&&t.priority!=='normal')m.push(`<span class="pill ${t.priority==='critical'?'c':'h'}">${PRN[t.priority]}</span>`);
   if(!done&&(t.status==='doing'||t.status==='waiting'))m.push(`<span class="pill s">${ST[t.status]}</span>`);
   if(t.project){const pj=PIDX.get(t.project.trim().toLowerCase());m.push(`<span>${pj&&pj.company?esc(pj.company)+' &middot; ':''}${esc(t.project)}</span>`)}
@@ -66,7 +75,10 @@ ${openId===t.id?editor(t):''}</div>`}
 const opts=(o,v)=>Object.entries(o).map(([k,l])=>`<option value="${k}"${k===v?' selected':''}>${l}</option>`).join('');
 function editor(t){return `<div class="edit">
 <label class="full">Task<input data-f="title" value="${esc(t.title)}"></label>
+<label>Type<select data-f="kind">${opts({task:'Task',visit:'Visit'},t.kind||'task')}</select></label>
 <label>Due date<input type="date" data-f="due" value="${t.due||''}"></label>
+<label>Time<input type="time" data-f="time" value="${t.time||''}"></label>
+<label${t.kind==='visit'?'':' class="full"'}>Location<input data-f="location" value="${esc(t.location||'')}" placeholder="${t.kind==='visit'?'Address or place':'Optional'}"></label>
 <label>Priority<select data-f="priority">${opts(PRN,t.priority)}</select></label>
 <label>Status<select data-f="status">${opts(ST,t.status)}</select></label>
 <label>Area<select data-f="area">${opts(AR,t.area)}</select></label>
@@ -89,7 +101,7 @@ function monthView(byDay){const m=mCur,first=m+'-01',last=monLast(m),start=monda
   for(let d=start;d<=end;d=addDays(d,1)){const l=(byDay.get(d)||[]).slice().sort((a,b)=>(a.status==='done')-(b.status==='done')||sortT(a,b)),open=l.filter(t=>t.status!=='done');
     const cls=['mday',d.slice(0,7)!==m?'out':'',d===today?'now':'',d===selDay?'sel':'',d<today&&open.length?'late':''].join(' ');
     g+=`<button class="${cls}" data-act="msel" data-d="${d}" aria-label="${fmt(d,{weekday:'long',month:'long',day:'numeric'})}, ${open.length} open"><span class="dn">${pd(d).getDate()}</span>`+
-      l.slice(0,3).map(t=>`<span class="mt ${t.priority}${t.status==='done'?' dn2':''}">${esc(t.title)}</span>`).join('')+(l.length>3?`<span class="more">+${l.length-3} more</span>`:'')+
+      l.slice(0,3).map(t=>`<span class="mt ${t.priority}${t.kind==='visit'?' vis':''}${t.status==='done'?' dn2':''}">${t.time?`<b>${fmtTime(t.time).replace(':00','')}</b> `:''}${esc(t.title)}</span>`).join('')+(l.length>3?`<span class="more">+${l.length-3} more</span>`:'')+
       (l.length?`<span class="mdots">${l.slice(0,4).map(t=>`<i class="${t.priority}${t.status==='done'?' dn2':''}"></i>`).join('')}</span>`:'')+'</button>'}
   g+='</div>';
   const sl=(byDay.get(selDay)||[]).slice().sort((a,b)=>(a.status==='done')-(b.status==='done')||sortT(a,b));
@@ -163,6 +175,7 @@ function render(){
   $('#cdate').setAttribute('aria-pressed',draft.when==='custom');
   $$('[data-area]').forEach(b=>b.setAttribute('aria-pressed',draft.area===b.dataset.area));
   $$('[data-pri]').forEach(b=>b.setAttribute('aria-pressed',draft.pri===b.dataset.pri));
+  $$('[data-kind]').forEach(b=>b.setAttribute('aria-pressed',draft.kind===b.dataset.kind));$('#vrow').hidden=draft.kind!=='visit';$('#q').placeholder=draft.kind==='visit'?'Where are you going? e.g. Site visit':'Add a task…';
   const psel=$('#proj');if(document.activeElement!==psel){if(draft.project&&!PLall.some(p=>same(p.title,draft.project)))draft.project='';psel.innerHTML=projOptions(draft.project,true);psel.value=PLall.find(p=>same(p.title,draft.project))?.title||'';}
   psel.setAttribute('aria-pressed',!!draft.project);
   $('#projlist').innerHTML=PLall.map(p=>`<option value="${esc(p.title)}" label="${esc([p.company,p.category].filter(Boolean).join(' · ')||AR[p.area]||'')}">`).join('');
@@ -171,7 +184,8 @@ function render(){
   let h='';
   if(mode==='loading')h=empty('Loading your tasks…','');
   else if(view==='today'){const dn=A.filter(t=>t.status==='done'&&t.doneAt&&iso(new Date(t.doneAt))===today);
-    h=sec('Overdue',P.od,'b-red')+sec('Due today',P.td,'b-orange')+sec('Critical, coming up',P.cr,'b-yellow')+sec('In progress',P.dg,'b-blue')
+    const vt=P.td.filter(t=>t.kind==='visit'),tt=P.td.filter(t=>t.kind!=='visit');
+    h=sec('Overdue',P.od,'b-red')+sec('Visits today',vt,'b-purple')+sec('Due today',tt,'b-orange')+sec('Critical, coming up',P.cr,'b-yellow')+sec('In progress',P.dg,'b-blue')
       +(RS.length?`<section class="card b-green"><h2><span>Routines</span><span>${RS.length-rLeft}/${RS.length} done</span></h2>${RS.map(rTodayRow).join('')}</section>`:'')
       +sec('Done today',dn,'b-gray');
     if(!P.od.length&&!P.td.length&&!P.cr.length&&!P.dg.length)h=empty('Nothing due today','Add a task above, or look at Week and Upcoming.')+h}
@@ -214,12 +228,15 @@ $('#add').addEventListener('submit',e=>{e.preventDefault();const p=parseQ($('#q'
   if(!p.title){const q=$('#q'),f=$('#add');q.placeholder='Type your task here first…';q.classList.add('nudge');f.classList.remove('shake');void f.offsetWidth;f.classList.add('shake');q.focus();
     setTimeout(()=>{q.placeholder='Add a task…';q.classList.remove('nudge')},2500);return}
   const pr=(p.project||draft.project||'').trim(),pj=pr&&projByTitle(pr);
-  const t={id:newId(),title:p.title,due:p.due??dueFromDraft(),priority:p.priority||draft.pri,status:'todo',project:pj?pj.title:pr,area:p.area||(pj?pj.area:draft.area),notes:'',created:Date.now(),doneAt:0};
+  const vis=draft.kind==='visit',tm=p.time||(vis?$('#vtime').value:'')||'',loc=vis?$('#vloc').value.trim():'';
+  const t={id:newId(),title:p.title,kind:vis?'visit':'task',time:tm,location:loc,due:p.due??dueFromDraft(),priority:p.priority||draft.pri,status:'todo',project:pj?pj.title:pr,area:p.area||(pj?pj.area:draft.area),notes:'',created:Date.now(),doneAt:0};
+  if(vis){$('#vtime').value='';$('#vloc').value=''}
   tasks.set(t.id,t);persist(t.id);ensureProject(t.project,t.area);flash=t.id;$('#q').value='';draft.pri='normal';
   const P=todayParts([t]);const inToday=P.od.length+P.td.length+P.cr.length>0;
   if(view==='done'||(view==='today'&&!inToday)||(view==='upcoming'&&inToday&&t.due===today)||(area!=='all'&&area!==t.area))toast('Added'+(t.due?' for '+fmt(t.due):'')+(inToday?' · shows in Today':' · shows in Upcoming'));
   render()});
-document.addEventListener('click',e=>{const b=e.target.closest('[data-when],[data-area],[data-pri],[data-a],[data-v],[data-go]');if(!b)return;
+document.addEventListener('click',e=>{const b=e.target.closest('[data-when],[data-area],[data-pri],[data-a],[data-v],[data-go],[data-kind]');if(!b)return;
+  if(b.dataset.kind){draft.kind=b.dataset.kind;render();if(draft.kind==='visit')$('#q').focus();return}
   if(b.dataset.when){draft.when=b.dataset.when;$('#cdate').value=''}
   if(b.dataset.area){draft.area=b.dataset.area;ls.set('mp.newArea',draft.area)}
   if(b.dataset.pri)draft.pri=b.dataset.pri;
@@ -245,7 +262,7 @@ function saveProject(){const title=$('#pf-title').value.trim();if(!title){$('#pf
 
 /* list actions */
 const L=$('#list');
-L.addEventListener('click',e=>{const pa=e.target.closest('[data-pfa]');if(pa){$$('[data-pfa]').forEach(x=>x.setAttribute('aria-pressed',x===pa));$('#pf-co-wrap').hidden=pa.dataset.pfa==='personal';return}
+L.addEventListener('click',e=>{if(e.target.closest('a.loc'))return;const pa=e.target.closest('[data-pfa]');if(pa){$$('[data-pfa]').forEach(x=>x.setAttribute('aria-pressed',x===pa));$('#pf-co-wrap').hidden=pa.dataset.pfa==='personal';return}
   const b=e.target.closest('[data-act]');if(!b)return;const el=b.closest('[data-id]'),id=el&&el.dataset.id,t=id&&tasks.get(id);
   const a=b.dataset.act;
   if(a==='toggle'&&t){const prev={status:t.status,doneAt:t.doneAt};const done=t.status!=='done';t.status=done?'done':'todo';t.doneAt=done?Date.now():0;persist(id);render();
@@ -285,7 +302,8 @@ L.addEventListener('click',e=>{const pa=e.target.closest('[data-pfa]');if(pa){$$
 L.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('.body')){e.preventDefault();e.target.click()}});
 L.addEventListener('change',e=>{const f=e.target.dataset.f;if(!f)return;const id=e.target.closest('[data-id]').dataset.id,t=tasks.get(id);if(!t)return;
   let v=e.target.value;if(f==='title'){v=v.trim();if(!v){e.target.value=t.title;return}}if(f==='project')v=v.trim();
-  if(t[f]===v)return;t[f]=v;if(f==='status')t.doneAt=v==='done'?Date.now():0;persist(id);if(f==='project')ensureProject(v,t.area)});
+  if(f==='location')v=v.trim();
+  if((t[f]||'')===v)return;t[f]=v;if(f==='status')t.doneAt=v==='done'?Date.now():0;persist(id);if(f==='project')ensureProject(v,t.area);if(f==='kind'){e.target.blur();render()}});
 L.addEventListener('change',e=>{const f=e.target.dataset.rf;if(!f)return;const r=routines.get(e.target.dataset.r);if(!r)return;let v=e.target.value.trim();
   if(f==='title'&&!v){e.target.value=r.title;return}if(r[f]===v)return;r[f]=v;persistR(r.id);if(f!=='title'){document.activeElement.blur();render()}});
 L.addEventListener('submit',e=>{if(e.target.id!=='radd')return;e.preventDefault();const t=$('#r-title').value.trim(),f=$('#r-freq').value;if(!t)return;
@@ -320,7 +338,7 @@ $('#m-export').addEventListener('click',()=>{const data={app:'my-planner',versio
 $('#m-import').addEventListener('click',()=>{$('#importfile').click()});
 $('#importfile').addEventListener('change',async e=>{const f=e.target.files[0];e.target.value='';menu.hidden=true;if(!f)return;
   try{const d=JSON.parse(await f.text());const ts=Array.isArray(d.tasks)?d.tasks:[],ps=Array.isArray(d.projects)?d.projects:[];
-    let n=0;ts.forEach(t=>{if(t&&t.id&&t.title){const c={id:String(t.id),title:String(t.title),due:t.due||'',priority:PR[t.priority]!=null?t.priority:'normal',status:ST[t.status]?t.status:'todo',project:t.project||'',area:t.area==='personal'?'personal':'work',notes:t.notes||'',created:t.created||Date.now(),doneAt:t.doneAt||0};tasks.set(c.id,c);persist(c.id);n++}});
+    let n=0;ts.forEach(t=>{if(t&&t.id&&t.title){const c={id:String(t.id),title:String(t.title),due:t.due||'',priority:PR[t.priority]!=null?t.priority:'normal',status:ST[t.status]?t.status:'todo',project:t.project||'',area:t.area==='personal'?'personal':'work',notes:t.notes||'',kind:t.kind==='visit'?'visit':'task',time:/^\d\d:\d\d$/.test(t.time||'')?t.time:'',location:t.location||'',created:t.created||Date.now(),doneAt:t.doneAt||0};tasks.set(c.id,c);persist(c.id);n++}});
     ps.forEach(p=>{if(p&&p.id&&p.title){const c={id:String(p.id),title:String(p.title),area:p.area==='personal'?'personal':'work',company:p.company||'',category:p.category||'',created:p.created||Date.now()};projects.set(c.id,c);persistP(c.id)}});
     (Array.isArray(d.routines)?d.routines:[]).forEach(r=>{if(r&&r.id&&r.title&&FREQ[r.freq]){const c={id:String(r.id),title:String(r.title),freq:r.freq,area:r.area==='personal'?'personal':'work',marks:r.marks&&typeof r.marks==='object'?r.marks:{},created:r.created||Date.now()};routines.set(c.id,c);persistR(c.id)}});
     render();toast('Imported '+n+' tasks')}catch(err){toast('That file isn’t a planner backup')}});

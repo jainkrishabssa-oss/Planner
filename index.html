@@ -254,6 +254,16 @@ form.add{border:1.5px solid color-mix(in srgb,var(--acc) 55%,transparent);border
 .yd.late{box-shadow:inset 0 0 0 2px var(--red)}
 .yd.now{outline:2px solid var(--ink);outline-offset:-2px}
 @media(max-width:600px){.mday{min-height:58px;padding:5px;border-radius:10px}.mt,.more{display:none}.mdots{display:flex}.mgrid{gap:4px}.calnav b{min-width:0;font-size:16px}}
+/* visits */
+.vrow{display:flex;gap:6px;flex-wrap:wrap;flex:1 1 100%}
+.vrow[hidden]{display:none}
+#vtime{width:140px}#vloc{flex:1 1 200px}
+.pill.v{background:light-dark(#E6D3EA,#3B1C4A);color:light-dark(#522B5B,#E3C6EC)}
+.meta .tm{font-weight:600;color:var(--ink)}
+.loc{display:inline-flex;align-items:center;gap:3px;color:var(--acc);text-decoration:none;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.loc:hover{text-decoration:underline}
+.mt.vis{background:light-dark(#E6D3EA,#3B1C4A);color:light-dark(#522B5B,#E3C6EC)}
+.mt b{font-weight:700}
 </style>
 </head>
 <body>
@@ -290,6 +300,14 @@ form.add{border:1.5px solid color-mix(in srgb,var(--acc) 55%,transparent);border
   <form class="add" id="add" autocomplete="off">
     <div class="addrow"><input id="q" placeholder="Add a task…" aria-label="New task" enterkeyhint="done"><button class="btn" type="submit">Add</button></div>
     <div class="opts">
+      <div class="grp" role="group" aria-label="Type">
+        <button type="button" class="chip" data-kind="task">Task</button>
+        <button type="button" class="chip" data-kind="visit">Visit</button>
+      </div>
+      <div class="vrow" id="vrow" hidden>
+        <input type="time" class="chip" id="vtime" aria-label="Visit time">
+        <input class="chip" id="vloc" placeholder="Location or address" aria-label="Visit location" autocomplete="street-address">
+      </div>
       <div class="grp" role="group" aria-label="Due">
         <button type="button" class="chip" data-when="today">Today</button>
         <button type="button" class="chip" data-when="tomorrow">Tomorrow</button>
@@ -309,7 +327,7 @@ form.add{border:1.5px solid color-mix(in srgb,var(--acc) 55%,transparent);border
       <select class="chip" id="proj" aria-label="Project"><option value="">No project</option></select>
     </div>
   </form>
-  <p class="hint">Shortcuts while typing: <code>#project</code> &middot; <code>!</code> critical &middot; <code>@personal</code> &middot; <code>today</code>, <code>tomorrow</code>, <code>friday</code></p>
+  <p class="hint">Shortcuts while typing: <code>#project</code> &middot; <code>!</code> critical &middot; <code>@personal</code> &middot; <code>today</code>, <code>tomorrow</code>, <code>friday</code> &middot; <code>3pm</code></p>
   </aside>
   <div class="main">
   <nav class="tabs" role="tablist" id="tabs"></nav>
