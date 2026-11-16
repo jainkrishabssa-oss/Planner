@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>My Planner</title>
+<meta name="theme-color" content="#1d2bd8">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Planner">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE: calm and quick, a tool that opens mid-use
+   IDEA: a tear-off day-planner sheet: today's date heads the page, the list is the page
+   PICTURE: the live task list itself, under a large date and three tallies
+   COLOUR and TYPE: white sheet, ink, ultramarine accent, red only for overdue; Inter Tight + Inter
+   LAYOUT: one 760px column: date, add bar, tabs, list; wraps cleanly on phones */
+:root{color-scheme:light dark;--bg:light-dark(#fff,#0d0e18);--ink:light-dark(#14110f,#ecebf3);--mute:light-dark(#6b6f7b,#9a9cad);--line:light-dark(#e6e7ec,#262838);--soft:light-dark(#f4f5f8,#171928);--acc:light-dark(#1d2bd8,#8d97ff);--red:light-dark(#c8231a,#ff7a70);--reds:light-dark(#fdecea,#3a1615);--amb:light-dark(#a15c00,#f3b459);--ambs:light-dark(#fdf3e2,#33260f);--teal:light-dark(#0f766e,#5fd3c6)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Inter,system-ui,sans-serif;overflow-x:clip}
+.wrap{max-width:760px;margin:0 auto;padding:clamp(20px,4vw,40px) max(4vw,16px) 110px}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.dow{color:var(--acc);font-weight:600;font-size:15px}
+h1{font:700 clamp(34px,6vw,48px)/1.05 'Inter Tight',system-ui,sans-serif;margin:2px 0 0;letter-spacing:-.02em}
+.sync{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--mute);padding:6px 12px;border:1px solid var(--line);border-radius:99px;white-space:nowrap}
+.sync i{width:8px;height:8px;border-radius:50%;background:var(--mute)}
+.sync.ok i{background:var(--acc)}.sync.warn i{background:var(--amb)}
+.tally{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:22px 0}
+.tally button{border:0;font:inherit;color:inherit;text-align:left;padding:12px 14px;border-radius:12px;background:var(--soft);cursor:pointer}
+.tally b{display:block;font:700 clamp(26px,5vw,34px)/1.05 'Inter Tight',sans-serif}
+.tally span{font-size:13px;color:var(--mute)}
+.tally .od b{color:var(--red)}
+form.add{border:1.5px solid var(--ink);border-radius:14px;padding:6px 6px 10px}
+.addrow{display:flex;gap:8px}
+#q{flex:1;font:16px Inter,sans-serif;border:0;background:transparent;color:var(--ink);padding:10px;outline:none}
+.btn{min-height:44px;padding:0 18px;border-radius:10px;border:0;background:var(--acc);color:var(--bg);font:600 15px Inter,sans-serif;cursor:pointer;white-space:nowrap}
+.opts{display:flex;flex-wrap:wrap;gap:8px;padding:6px 6px 0}
+.grp{display:flex;gap:6px;flex-wrap:wrap;padding-right:8px;border-right:1px solid var(--line)}
+.chip{min-height:40px;padding:0 13px;border-radius:99px;border:1px solid var(--line);background:transparent;color:var(--ink);font:500 14px Inter,sans-serif;cursor:pointer;white-space:nowrap}
+.chip[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+input.chip{cursor:text;font-size:16px}
+#cdate{width:150px}#proj{width:170px}
+.hint{font-size:13px;color:var(--mute);margin:8px 2px 0}
+code{font:500 12px ui-monospace,monospace;background:var(--soft);padding:1px 5px;border-radius:5px}
+.tabs{display:flex;gap:2px;margin:26px 0 0;border-bottom:1px solid var(--line);overflow-x:auto}
+.tab{border:0;background:none;cursor:pointer;padding:12px 14px;font:600 15px Inter,sans-serif;color:var(--mute);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tab[aria-selected=true]{color:var(--ink);border-color:var(--acc)}
+.tab small{font-weight:500;margin-left:5px;color:var(--mute)}
+.bar{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:14px 0 4px;flex-wrap:wrap}
+.seg{display:inline-flex;background:var(--soft);border-radius:10px;padding:3px}
+.seg button{border:0;background:none;font:500 14px Inter,sans-serif;color:var(--mute);padding:0 14px;min-height:38px;border-radius:8px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--bg);color:var(--ink);box-shadow:0 1px 3px rgb(0 0 0/.12)}
+h2{font:600 13px Inter,sans-serif;color:var(--mute);margin:22px 0 2px;display:flex;justify-content:space-between;padding:0 4px}
+h2.od{color:var(--red)}
+.task{display:grid;grid-template-columns:44px minmax(0,1fr);border-bottom:1px solid var(--line)}
+.task.new{animation:pop .5s ease}
+@keyframes pop{from{background:var(--soft)}}
+.ck{width:44px;height:44px;display:grid;place-items:center;background:none;border:0;cursor:pointer;padding:0;margin-top:2px}
+.ck i{width:20px;height:20px;border-radius:50%;border:2px solid var(--mute);display:grid;place-items:center;color:var(--bg)}
+.task.critical .ck i{border-color:var(--red)}.task.high .ck i{border-color:var(--amb)}
+.task.done .ck i{background:var(--acc);border-color:var(--acc)}
+.body{padding:11px 4px 11px 2px;cursor:pointer}
+.t{font-weight:500;overflow-wrap:anywhere}
+.task.done .t{text-decoration:line-through;color:var(--mute)}
+.meta{display:flex;flex-wrap:wrap;gap:3px 10px;font-size:13px;color:var(--mute);margin-top:2px;align-items:center}
+.meta .od{color:var(--red);font-weight:600}.meta .td{color:var(--acc);font-weight:600}
+.tag{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--acc)}.personal .dot{background:var(--teal)}
+.pill{padding:1px 8px;border-radius:99px;font-weight:600;font-size:12px;white-space:nowrap}
+.pill.c{background:var(--reds);color:var(--red)}.pill.h{background:var(--ambs);color:var(--amb)}.pill.s{background:var(--soft);color:var(--ink)}
+.note{font-size:13px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.edit{grid-column:1/-1;padding:2px 4px 16px 46px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.edit label{font-size:12px;color:var(--mute);display:grid;gap:4px}
+.edit .full{grid-column:1/-1}
+.edit input,.edit select,.edit textarea{font:16px Inter,sans-serif;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);min-height:44px;width:100%}
+.acts{display:flex;justify-content:space-between;gap:8px}
+.ghost{min-height:44px;padding:0 16px;border-radius:10px;border:1px solid var(--line);background:none;color:var(--red);font:600 14px Inter,sans-serif;cursor:pointer}
+.proj{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:14px 4px;border:0;border-bottom:1px solid var(--line);cursor:pointer;background:none;width:100%;text-align:left;color:inherit;font:inherit}
+.proj b{font:600 17px 'Inter Tight',sans-serif}
+.proj .n{font:700 22px/1 'Inter Tight',sans-serif;text-align:right;align-self:center}
+.proj .sub{font-size:13px;color:var(--mute)}.proj .sub .od{color:var(--red);font-weight:600}
+.meter{grid-column:1/-1;height:4px;background:var(--soft);border-radius:4px;overflow:hidden;margin-top:8px}
+.meter i{display:block;height:100%;background:var(--acc)}
+.inproj{padding-left:14px;border-left:2px solid var(--acc);margin:4px 0 10px}
+.link{border:0;background:none;color:var(--acc);font:600 14px Inter,sans-serif;min-height:44px;padding:0 4px;cursor:pointer}
+.pbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:14px 0 4px}
+.pform{border:1.5px solid var(--ink);border-radius:14px;padding:16px;margin:14px 0 6px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.pform h3{grid-column:1/-1;margin:0;font:600 19px 'Inter Tight',sans-serif}
+.pform label{font-size:12px;color:var(--mute);display:grid;gap:4px}
+.pform .full{grid-column:1/-1}.pform [hidden]{display:none}
+.pform input{font:16px Inter,sans-serif;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);min-height:44px;width:100%}
+.pform .seg{justify-self:start}
+.pill.k{background:var(--soft);color:var(--ink);font-weight:500}
+.empty{padding:40px 8px;text-align:center;color:var(--mute)}
+.empty b{display:block;color:var(--ink);font:600 19px 'Inter Tight',sans-serif;margin-bottom:4px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 8px 8px 16px;border-radius:12px;display:flex;gap:10px;align-items:center;font-size:14px;box-shadow:0 8px 24px rgb(0 0 0/.2);max-width:calc(100vw - 32px)}
+.toast[hidden]{display:none}
+.toast button{background:none;border:0;color:inherit;font:600 14px Inter,sans-serif;text-decoration:underline;min-height:36px;padding:0 8px;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.body:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+@media(max-width:600px){.pform{grid-template-columns:minmax(0,1fr)}.grp{border-right:0;padding-right:0}.edit{padding-left:4px}#proj,#cdate{width:100%;flex:1 1 140px}}
+@media(prefers-reduced-motion:reduce){.task.new{animation:none}}
+.hdr-r{display:flex;gap:8px;align-items:center;position:relative}
+.acct{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:none;color:var(--ink);cursor:pointer;display:grid;place-items:center}
+.menu{position:absolute;right:0;top:48px;z-index:5;background:var(--bg);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgb(0 0 0/.15);padding:6px;min-width:230px}
+.menu[hidden]{display:none}
+.menu .who{font-size:13px;color:var(--mute);padding:8px 10px;border-bottom:1px solid var(--line);margin-bottom:4px;overflow-wrap:anywhere}
+.menu button{display:block;width:100%;text-align:left;border:0;background:none;color:var(--ink);font:500 15px Inter,sans-serif;padding:0 10px;min-height:44px;border-radius:8px;cursor:pointer}
+.menu button:hover{background:var(--soft)}
+.gate{max-width:420px;margin:0 auto;padding:clamp(40px,12vh,120px) 20px}
+.gate[hidden],#app[hidden]{display:none}
+.gate h1{margin-bottom:6px}.gate p{color:var(--mute);margin:0 0 22px}
+.gate form{display:grid;gap:12px}
+.gate label{font-size:13px;color:var(--mute);display:grid;gap:4px}
+.gate input{font:16px Inter,sans-serif;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);min-height:48px}
+.gate .msg{min-height:22px;font-size:14px;color:var(--red)}
+.gate .row{display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px}
+@media(display-mode:standalone){.wrap{padding-top:max(20px,env(safe-area-inset-top))}}
+</style>
+</head>
+<body>
+<section class="gate" id="setup" hidden>
+  <h1>Almost there</h1>
+  <p>This app isn’t connected to your Firebase project yet. Open <b>config.js</b> and paste in your Firebase settings (setup guide, step 5).</p>
+  <p id="setup-msg" style="color:var(--red)"></p>
+  <p><a href="?demo" style="color:var(--acc)">Try it in demo mode</a> — tasks stay in this browser only.</p>
+</section>
+<section class="gate" id="auth" hidden>
+  <h1 id="a-title">Sign in to your planner</h1>
+  <p>Use the same account on your phone and laptop and your tasks stay in sync.</p>
+  <form id="a-form">
+    <label>Email<input id="a-email" type="email" autocomplete="username" required></label>
+    <label>Password<input id="a-pass" type="password" autocomplete="current-password" minlength="6" required></label>
+    <div class="msg" id="a-msg" role="alert"></div>
+    <button class="btn" id="a-go" type="submit">Sign in</button>
+    <div class="row"><button type="button" class="link" id="a-switch">New here? Create an account</button><button type="button" class="link" id="a-reset">Forgot password?</button></div>
+  </form>
+</section>
+
+<div class="wrap" id="app">
+  <header>
+    <div><div class="dow" id="dow"></div><h1 id="date">Today</h1></div>
+    <div class="hdr-r">
+      <span class="sync" id="sync"><i></i><span>Connecting…</span></span>
+      <button class="acct" id="acct" aria-label="Account and backup" aria-haspopup="true"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4.8 19.5c1.4-3.2 4-4.8 7.2-4.8s5.8 1.6 7.2 4.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+      <div class="menu" id="menu" hidden><div class="who" id="who"></div>
+        <button id="m-export">Download a backup</button><button id="m-import">Restore from a backup</button><button id="m-out">Sign out</button></div>
+    </div>
+  </header>
+  <div class="tally" id="tally"></div>
+  <form class="add" id="add" autocomplete="off">
+    <div class="addrow"><input id="q" placeholder="Add a task…" aria-label="New task" enterkeyhint="done"><button class="btn" type="submit">Add</button></div>
+    <div class="opts">
+      <div class="grp" role="group" aria-label="Due">
+        <button type="button" class="chip" data-when="today">Today</button>
+        <button type="button" class="chip" data-when="tomorrow">Tomorrow</button>
+        <button type="button" class="chip" data-when="week">In a week</button>
+        <button type="button" class="chip" data-when="none">No date</button>
+        <input type="date" class="chip" id="cdate" aria-label="Pick a due date">
+      </div>
+      <div class="grp" role="group" aria-label="Area">
+        <button type="button" class="chip" data-area="work">Work</button>
+        <button type="button" class="chip" data-area="personal">Personal</button>
+      </div>
+      <div class="grp" role="group" aria-label="Priority">
+        <button type="button" class="chip" data-pri="critical">Critical</button>
+        <button type="button" class="chip" data-pri="high">High</button>
+        <button type="button" class="chip" data-pri="normal">Normal</button>
+      </div>
+      <input class="chip" id="proj" list="projlist" placeholder="Project (optional)" aria-label="Project">
+    </div>
+  </form>
+  <p class="hint">Shortcuts while typing: <code>#project</code> &middot; <code>!</code> critical &middot; <code>@personal</code> &middot; <code>today</code>, <code>tomorrow</code>, <code>friday</code></p>
+  <nav class="tabs" role="tablist" id="tabs"></nav>
+  <div class="bar">
+    <div class="seg" id="seg" role="group" aria-label="Show">
+      <button type="button" data-a="all">All</button><button type="button" data-a="work">Work</button><button type="button" data-a="personal">Personal</button>
+    </div>
+  </div>
+  <main id="list"><div class="empty"><b>Loading your tasks…</b></div></main>
+</div>
+<datalist id="projlist"></datalist><datalist id="companylist"></datalist><datalist id="catlist"></datalist>
+<div class="toast" id="toast" hidden role="status"><span></span><button type="button">Undo</button></div>
+<input type="file" id="importfile" accept="application/json,.json" hidden>
+<script src="config.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>

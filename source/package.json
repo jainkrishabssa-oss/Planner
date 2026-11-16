@@ -1,0 +1,16 @@
+{
+  "name": "my-planner",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "build": "esbuild src/main.js --bundle --format=esm --minify --target=es2020 --outfile=../app.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "esbuild": "^0.28.2",
+    "firebase": "^13.3.0",
+    "puppeteer-core": "^23.11.1"
+  }
+}
