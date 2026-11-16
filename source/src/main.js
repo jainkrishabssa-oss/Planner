@@ -38,7 +38,8 @@ const tkey=t=>t.time||'99:99';
 const sortT=(a,b)=>key(a)<key(b)?-1:key(a)>key(b)?1:tkey(a)<tkey(b)?-1:tkey(a)>tkey(b)?1:(PR[a.priority]-PR[b.priority])||((a.created||0)-(b.created||0));
 const fmtTime=t=>{if(!t)return '';const[h,m]=t.split(':').map(Number);return new Date(2000,0,1,h,m).toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})};
 const PIN='<svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="10" r="2.3" fill="currentColor"/></svg>';
-const mapUrl=l=>'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(l);
+const isLink=l=>/^https?:\/\/[^\s]+$/i.test((l||'').trim());
+const mapUrl=l=>isLink(l)?l.trim():'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(l);
 
 function setSync(text,cls){const s=$('#sync');s.className='sync '+(cls||'');s.lastElementChild.textContent=text}
 function toast(msg,undo){const t=$('#toast');t.firstElementChild.textContent=msg;const b=t.lastElementChild;b.hidden=!undo;b.onclick=()=>{t.hidden=true;undo&&undo()};t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>t.hidden=true,5000)}
@@ -61,9 +62,9 @@ function dueLabel(t){if(!t.due)return '';const d=diff(today,t.due);
   if(t.status!=='done'&&d<0)return `<span class="od">Overdue ${-d}d &middot; ${fmt(t.due,{month:'short',day:'numeric'})}</span>`;
   if(d===0)return '<span class="td">Today</span>';if(d===1)return '<span>Tomorrow</span>';return `<span>${fmt(t.due)}</span>`}
 function row(t){const done=t.status==='done';const m=[dueLabel(t)];
-  if(t.kind==='visit')m.unshift('<span class="pill v">Visit</span>');
+  if(t.kind==='visit')m.unshift('<span class="pill v">Meeting</span>');
   if(t.time)m.push(`<span class="tm">${fmtTime(t.time)}</span>`);
-  if(t.location)m.push(`<a class="loc" href="${mapUrl(t.location)}" target="_blank" rel="noopener" title="Open in Google Maps">${PIN}${esc(t.location)}</a>`);
+  if(t.location)m.push(`<a class="loc" href="${mapUrl(t.location)}" target="_blank" rel="noopener" title="${isLink(t.location)?'Open meeting link':'Open in Google Maps'}">${PIN}${esc(isLink(t.location)?'Join link':t.location)}</a>`);
   if(!done&&t.priority!=='normal')m.push(`<span class="pill ${t.priority==='critical'?'c':'h'}">${PRN[t.priority]}</span>`);
   if(!done&&(t.status==='doing'||t.status==='waiting'))m.push(`<span class="pill s">${ST[t.status]}</span>`);
   if(t.project){const pj=PIDX.get(t.project.trim().toLowerCase());m.push(`<span>${pj&&pj.company?esc(pj.company)+' &middot; ':''}${esc(t.project)}</span>`)}
@@ -75,10 +76,10 @@ ${openId===t.id?editor(t):''}</div>`}
 const opts=(o,v)=>Object.entries(o).map(([k,l])=>`<option value="${k}"${k===v?' selected':''}>${l}</option>`).join('');
 function editor(t){return `<div class="edit">
 <label class="full">Task<input data-f="title" value="${esc(t.title)}"></label>
-<label>Type<select data-f="kind">${opts({task:'Task',visit:'Visit'},t.kind||'task')}</select></label>
+<label>Type<select data-f="kind">${opts({task:'Task',visit:'Meeting'},t.kind||'task')}</select></label>
 <label>Due date<input type="date" data-f="due" value="${t.due||''}"></label>
 <label>Time<input type="time" data-f="time" value="${t.time||''}"></label>
-<label${t.kind==='visit'?'':' class="full"'}>Location<input data-f="location" value="${esc(t.location||'')}" placeholder="${t.kind==='visit'?'Address or place':'Optional'}"></label>
+<label${t.kind==='visit'?'':' class="full"'}>Location<input data-f="location" value="${esc(t.location||'')}" placeholder="${t.kind==='visit'?'Meeting place, address or video link':'Optional'}"></label>
 <label>Priority<select data-f="priority">${opts(PRN,t.priority)}</select></label>
 <label>Status<select data-f="status">${opts(ST,t.status)}</select></label>
 <label>Area<select data-f="area">${opts(AR,t.area)}</select></label>
@@ -175,7 +176,7 @@ function render(){
   $('#cdate').setAttribute('aria-pressed',draft.when==='custom');
   $$('[data-area]').forEach(b=>b.setAttribute('aria-pressed',draft.area===b.dataset.area));
   $$('[data-pri]').forEach(b=>b.setAttribute('aria-pressed',draft.pri===b.dataset.pri));
-  $$('[data-kind]').forEach(b=>b.setAttribute('aria-pressed',draft.kind===b.dataset.kind));$('#vrow').hidden=draft.kind!=='visit';$('#q').placeholder=draft.kind==='visit'?'Where are you going? e.g. Site visit':'Add a task…';
+  $$('[data-kind]').forEach(b=>b.setAttribute('aria-pressed',draft.kind===b.dataset.kind));$('#vrow').hidden=draft.kind!=='visit';$('#q').placeholder=draft.kind==='visit'?'What is the meeting? e.g. Client review':'Add a task…';
   const psel=$('#proj');if(document.activeElement!==psel){if(draft.project&&!PLall.some(p=>same(p.title,draft.project)))draft.project='';psel.innerHTML=projOptions(draft.project,true);psel.value=PLall.find(p=>same(p.title,draft.project))?.title||'';}
   psel.setAttribute('aria-pressed',!!draft.project);
   $('#projlist').innerHTML=PLall.map(p=>`<option value="${esc(p.title)}" label="${esc([p.company,p.category].filter(Boolean).join(' · ')||AR[p.area]||'')}">`).join('');
@@ -185,7 +186,7 @@ function render(){
   if(mode==='loading')h=empty('Loading your tasks…','');
   else if(view==='today'){const dn=A.filter(t=>t.status==='done'&&t.doneAt&&iso(new Date(t.doneAt))===today);
     const vt=P.td.filter(t=>t.kind==='visit'),tt=P.td.filter(t=>t.kind!=='visit');
-    h=sec('Overdue',P.od,'b-red')+sec('Visits today',vt,'b-purple')+sec('Due today',tt,'b-orange')+sec('Critical, coming up',P.cr,'b-yellow')+sec('In progress',P.dg,'b-blue')
+    h=sec('Overdue',P.od,'b-red')+sec('Meetings today',vt,'b-purple')+sec('Due today',tt,'b-orange')+sec('Critical, coming up',P.cr,'b-yellow')+sec('In progress',P.dg,'b-blue')
       +(RS.length?`<section class="card b-green"><h2><span>Routines</span><span>${RS.length-rLeft}/${RS.length} done</span></h2>${RS.map(rTodayRow).join('')}</section>`:'')
       +sec('Done today',dn,'b-gray');
     if(!P.od.length&&!P.td.length&&!P.cr.length&&!P.dg.length)h=empty('Nothing due today','Add a task above, or look at Week and Upcoming.')+h}
@@ -338,7 +339,7 @@ $('#m-export').addEventListener('click',()=>{const data={app:'my-planner',versio
 $('#m-import').addEventListener('click',()=>{$('#importfile').click()});
 $('#importfile').addEventListener('change',async e=>{const f=e.target.files[0];e.target.value='';menu.hidden=true;if(!f)return;
   try{const d=JSON.parse(await f.text());const ts=Array.isArray(d.tasks)?d.tasks:[],ps=Array.isArray(d.projects)?d.projects:[];
-    let n=0;ts.forEach(t=>{if(t&&t.id&&t.title){const c={id:String(t.id),title:String(t.title),due:t.due||'',priority:PR[t.priority]!=null?t.priority:'normal',status:ST[t.status]?t.status:'todo',project:t.project||'',area:t.area==='personal'?'personal':'work',notes:t.notes||'',kind:t.kind==='visit'?'visit':'task',time:/^\d\d:\d\d$/.test(t.time||'')?t.time:'',location:t.location||'',created:t.created||Date.now(),doneAt:t.doneAt||0};tasks.set(c.id,c);persist(c.id);n++}});
+    let n=0;ts.forEach(t=>{if(t&&t.id&&t.title){const c={id:String(t.id),title:String(t.title),due:t.due||'',priority:PR[t.priority]!=null?t.priority:'normal',status:ST[t.status]?t.status:'todo',project:t.project||'',area:t.area==='personal'?'personal':'work',notes:t.notes||'',kind:(t.kind==='visit'||t.kind==='meeting')?'visit':'task',time:/^\d\d:\d\d$/.test(t.time||'')?t.time:'',location:t.location||'',created:t.created||Date.now(),doneAt:t.doneAt||0};tasks.set(c.id,c);persist(c.id);n++}});
     ps.forEach(p=>{if(p&&p.id&&p.title){const c={id:String(p.id),title:String(p.title),area:p.area==='personal'?'personal':'work',company:p.company||'',category:p.category||'',created:p.created||Date.now()};projects.set(c.id,c);persistP(c.id)}});
     (Array.isArray(d.routines)?d.routines:[]).forEach(r=>{if(r&&r.id&&r.title&&FREQ[r.freq]){const c={id:String(r.id),title:String(r.title),freq:r.freq,area:r.area==='personal'?'personal':'work',marks:r.marks&&typeof r.marks==='object'?r.marks:{},created:r.created||Date.now()};routines.set(c.id,c);persistR(c.id)}});
     render();toast('Imported '+n+' tasks')}catch(err){toast('That file isn’t a planner backup')}});
@@ -377,4 +378,8 @@ function start(){
   });
 }
 render();start();
-if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
+if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){
+  const hadSW=!!navigator.serviceWorker.controller;let reloaded=false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(hadSW&&!reloaded){reloaded=true;location.reload()}});
+  navigator.serviceWorker.register('./sw.js').then(r=>{r.update&&r.update();document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')r.update().catch(()=>{})})}).catch(()=>{});
+}

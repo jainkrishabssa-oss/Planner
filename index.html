@@ -257,7 +257,7 @@ form.add{border:1.5px solid color-mix(in srgb,var(--acc) 55%,transparent);border
 /* visits */
 .vrow{display:flex;gap:6px;flex-wrap:wrap;flex:1 1 100%}
 .vrow[hidden]{display:none}
-#vtime{width:140px}#vloc{flex:1 1 200px}
+.vlab{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--mute)}.vgrow{flex:1 1 220px}.vgrow input{flex:1;min-width:0}#vtime{width:130px}
 .pill.v{background:light-dark(#E6D3EA,#3B1C4A);color:light-dark(#522B5B,#E3C6EC)}
 .meta .tm{font-weight:600;color:var(--ink)}
 .loc{display:inline-flex;align-items:center;gap:3px;color:var(--acc);text-decoration:none;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -302,11 +302,11 @@ form.add{border:1.5px solid color-mix(in srgb,var(--acc) 55%,transparent);border
     <div class="opts">
       <div class="grp" role="group" aria-label="Type">
         <button type="button" class="chip" data-kind="task">Task</button>
-        <button type="button" class="chip" data-kind="visit">Visit</button>
+        <button type="button" class="chip" data-kind="visit">Meeting</button>
       </div>
       <div class="vrow" id="vrow" hidden>
-        <input type="time" class="chip" id="vtime" aria-label="Visit time">
-        <input class="chip" id="vloc" placeholder="Location or address" aria-label="Visit location" autocomplete="street-address">
+        <label class="vlab">Time<input type="time" class="chip" id="vtime" aria-label="Meeting time"></label>
+        <label class="vlab vgrow">Location<input class="chip" id="vloc" placeholder="Place, address or video link" aria-label="Meeting location"></label>
       </div>
       <div class="grp" role="group" aria-label="Due">
         <button type="button" class="chip" data-when="today">Today</button>
@@ -343,6 +343,6 @@ form.add{border:1.5px solid color-mix(in srgb,var(--acc) 55%,transparent);border
 <div class="toast" id="toast" hidden role="status"><span></span><button type="button">Undo</button></div>
 <input type="file" id="importfile" accept="application/json,.json" hidden>
 <script src="config.js"></script>
-<script type="module" src="app.js"></script>
+<script type="module" src="app.js?v=8"></script>
 </body>
 </html>
