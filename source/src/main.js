@@ -19,6 +19,7 @@ let tasks=new Map(), be=null, mode='loading', pending=false, flash='', clearArm=
 let view=ls.get('mp.view','today'), area=ls.get('mp.area','all'), openId=null, openProj=null;
 let draft={when:'today',custom:'',area:ls.get('mp.newArea','work'),pri:'normal',project:''};
 const CATS=['Client','Internal','Admin','Planning','Finance','Health','Home','Travel','Learning'];
+let calMode=ls.get('mp.cal','week'), mCur=null, yCur=null, selDay=null;
 let routines=new Map(), wOff=0, rOpen=null, rdelArm=0;
 let projects=new Map(), pform=null, pcat='all', pdelArm=0, PIDX=new Map();
 const same=(a,b)=>(a||'').trim().toLowerCase()===(b||'').trim().toLowerCase();
@@ -78,6 +79,29 @@ function projOptions(cur,withNew){const groups=new Map();projList().forEach(p=>{
 const sec=(title,list,band,extra)=>list.length?`<section class="card ${band||'b-gray'}"><h2><span>${title}</span><span>${list.length}</span></h2>${list.sort(sortT).map(row).join('')}${extra||''}</section>`:'';
 const DAYB=['b-orange','b-blue','b-purple','b-green','b-red','b-pink','b-teal'];
 const dayBand=d=>DAYB[(pd(d).getDay()+6)%7];
+const addMonths=(m,n)=>{const d=new Date(+m.slice(0,4),+m.slice(5,7)-1+n,1);return iso(d).slice(0,7)};
+const monLast=m=>iso(new Date(+m.slice(0,4),+m.slice(5,7),0));
+const MODES=[['week','Week'],['month','Month'],['year','Year']];
+function calBar(label,showNow){return `<div class="calbar"><div class="calnav"><button class="chip" data-act="cprev" aria-label="Previous">‹</button><b>${label}</b><button class="chip" data-act="cnext" aria-label="Next">›</button>${showNow?'<button class="link" data-act="cnow">Today</button>':''}</div><div class="seg" role="group" aria-label="Calendar view">${MODES.map(([k,l])=>`<button type="button" data-act="cmode" data-m="${k}" aria-pressed="${calMode===k}">${l}</button>`).join('')}</div></div>`}
+function monthView(byDay){const m=mCur,first=m+'-01',last=monLast(m),start=monday(first),end=addDays(monday(last),6);
+  if(!selDay||selDay.slice(0,7)!==m)selDay=today.slice(0,7)===m?today:first;
+  let g='<div class="mgrid">'+['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d=>`<span class="mh">${d}</span>`).join('');
+  for(let d=start;d<=end;d=addDays(d,1)){const l=(byDay.get(d)||[]).slice().sort((a,b)=>(a.status==='done')-(b.status==='done')||sortT(a,b)),open=l.filter(t=>t.status!=='done');
+    const cls=['mday',d.slice(0,7)!==m?'out':'',d===today?'now':'',d===selDay?'sel':'',d<today&&open.length?'late':''].join(' ');
+    g+=`<button class="${cls}" data-act="msel" data-d="${d}" aria-label="${fmt(d,{weekday:'long',month:'long',day:'numeric'})}, ${open.length} open"><span class="dn">${pd(d).getDate()}</span>`+
+      l.slice(0,3).map(t=>`<span class="mt ${t.priority}${t.status==='done'?' dn2':''}">${esc(t.title)}</span>`).join('')+(l.length>3?`<span class="more">+${l.length-3} more</span>`:'')+
+      (l.length?`<span class="mdots">${l.slice(0,4).map(t=>`<i class="${t.priority}${t.status==='done'?' dn2':''}"></i>`).join('')}</span>`:'')+'</button>'}
+  g+='</div>';
+  const sl=(byDay.get(selDay)||[]).slice().sort((a,b)=>(a.status==='done')-(b.status==='done')||sortT(a,b));
+  g+=`<section class="card ${dayBand(selDay)} msel"><h2><span>${fmt(selDay,{weekday:'long',month:'long',day:'numeric'})}${selDay===today?' · Today':''}</span><span>${sl.filter(t=>t.status!=='done').length||''}</span></h2>${sl.map(row).join('')||'<p class="hint pad">Nothing planned</p>'}<button class="link addd" data-act="wadd" data-d="${selDay}">+ Add on this day</button></section>`;
+  return calBar(new Date(+m.slice(0,4),+m.slice(5,7)-1,1).toLocaleDateString(undefined,{month:'long',year:'numeric'}),m!==today.slice(0,7))+g}
+function yearView(byDay){const y=yCur;let h='<div class="ygrid">';
+  for(let i=1;i<=12;i++){const m=y+'-'+pad(i),first=m+'-01',last=monLast(m),start=monday(first);let n=0,cells='';
+    for(let k=0;k<(pd(first).getDay()+6)%7;k++)cells+='<span></span>';
+    for(let d=first;d<=last;d=addDays(d,1)){const l=byDay.get(d)||[],o=l.filter(t=>t.status!=='done').length;n+=o;
+      cells+=`<button class="yd${o?' h'+Math.min(o,3):l.length?' hd':''}${d===today?' now':''}${d<today&&o?' late':''}" data-act="yday" data-d="${d}" title="${fmt(d)}${l.length?' · '+l.length+' task'+(l.length>1?'s':''):''}" aria-label="${fmt(d,{month:'long',day:'numeric'})}, ${o} open">${pd(d).getDate()}</button>`}
+    h+=`<section class="card ym${m===today.slice(0,7)?' cur':''}"><button class="ymh" data-act="ymonth" data-m="${m}"><span>${new Date(y,i-1,1).toLocaleDateString(undefined,{month:'long'})}</span><span>${n?n+' open':''}</span></button><div class="ycal">${['M','T','W','T','F','S','S'].map(x=>`<span class="yw">${x}</span>`).join('')}${cells}</div></section>`}
+  return calBar(String(y),y!==+today.slice(0,4))+h+'</div><p class="hint">Darker days have more open tasks. Tap a day or month to open it.</p>'}
 /* routines */
 const FREQ={daily:['Daily','b-green'],weekly:['Weekly','b-blue'],monthly:['Monthly','b-orange'],quarterly:['Quarterly','b-purple'],yearly:['Yearly','b-pink']};
 const monday=s=>addDays(s,-((pd(s).getDay()+6)%7));
@@ -133,7 +157,7 @@ function render(){
   const nWeek=open.filter(t=>t.due>=monday(today)&&t.due<=addDays(monday(today),6)).length;
   const nToday=P.od.length+P.td.length+P.cr.length+P.dg.length+rLeft,nUp=open.filter(t=>!t.due||t.due>today).length,nDone=A.length-open.length;
   const projs=PLall.filter(p=>area==='all'||p.area===area);
-  $('#tabs').innerHTML=[['today','Today',nToday],['week','Week',nWeek],['upcoming','Upcoming',nUp],['projects','Projects',projs.length],['routines','Routines',RS.length],['done','Done',nDone]].map(([k,l,n])=>`<button class="tab" role="tab" data-v="${k}" aria-selected="${view===k}">${l}<small>${n}</small></button>`).join('');
+  $('#tabs').innerHTML=[['today','Today',nToday],['week','Calendar',nWeek],['upcoming','Upcoming',nUp],['projects','Projects',projs.length],['routines','Routines',RS.length],['done','Done',nDone]].map(([k,l,n])=>`<button class="tab" role="tab" data-v="${k}" aria-selected="${view===k}">${l}<small>${n}</small></button>`).join('');
   $$('#seg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.a===area));
   $$('[data-when]').forEach(b=>b.setAttribute('aria-pressed',draft.when===b.dataset.when));
   $('#cdate').setAttribute('aria-pressed',draft.when==='custom');
@@ -151,8 +175,11 @@ function render(){
       +(RS.length?`<section class="card b-green"><h2><span>Routines</span><span>${RS.length-rLeft}/${RS.length} done</span></h2>${RS.map(rTodayRow).join('')}</section>`:'')
       +sec('Done today',dn,'b-gray');
     if(!P.od.length&&!P.td.length&&!P.cr.length&&!P.dg.length)h=empty('Nothing due today','Add a task above, or look at Week and Upcoming.')+h}
+  else if(view==='week'&&calMode!=='week'){const byDay=new Map();A.forEach(t=>{if(t.due){byDay.has(t.due)||byDay.set(t.due,[]);byDay.get(t.due).push(t)}});
+    if(!mCur)mCur=today.slice(0,7);if(!yCur)yCur=+today.slice(0,4);
+    h=calMode==='month'?monthView(byDay):yearView(byDay)}
   else if(view==='week'){
-    h=`<div class="wkbar"><button class="chip" data-act="wprev" aria-label="Previous week">‹</button><b>${fmt(ws,{month:'short',day:'numeric'})} – ${fmt(we,{month:'short',day:'numeric'})}</b><button class="chip" data-act="wnext" aria-label="Next week">›</button>${wOff?'<button class="link" data-act="wnow">Back to this week</button>':''}</div><div class="wk">`;
+    h=calBar(`${fmt(ws,{month:'short',day:'numeric'})} – ${fmt(we,{month:'short',day:'numeric'})}`,!!wOff)+`<div class="wk">`;
     for(let i=0;i<7;i++){const d=addDays(ws,i),l=A.filter(t=>t.due===d).sort((a,b)=>(a.status==='done')-(b.status==='done')||sortT(a,b));
       h+=`<section class="card ${DAYB[i]}${d===today?' now':''}"><h2><span>${fmt(d,{weekday:'long'})} ${pd(d).getDate()}${d===today?' · Today':''}</span><span>${l.filter(t=>t.status!=='done').length||''}</span></h2>${l.map(row).join('')||'<p class="hint pad">Nothing planned</p>'}<button class="link addd" data-act="wadd" data-d="${d}">+ Add</button></section>`}
     h+='</div>'}
@@ -236,7 +263,13 @@ L.addEventListener('click',e=>{const pa=e.target.closest('[data-pfa]');if(pa){$$
   else if(a==='rdel'){if(!rdelArm){b.textContent='Tap again to delete';rdelArm=setTimeout(()=>{rdelArm=0;b.textContent='Delete routine'},4000);return}
     clearTimeout(rdelArm);rdelArm=0;const r=routines.get(b.dataset.r);if(!r)return;routines.delete(r.id);persistR(r.id);rOpen=null;document.activeElement.blur();render();
     toast('Routine deleted',()=>{routines.set(r.id,r);persistR(r.id);render()})}
-  else if(a==='wprev'||a==='wnext'||a==='wnow'){wOff=a==='wnow'?0:wOff+(a==='wnext'?1:-1);openId=null;render()}
+  else if(a==='cprev'||a==='cnext'||a==='cnow'){const n=a==='cnext'?1:-1;openId=null;
+    if(calMode==='week')wOff=a==='cnow'?0:wOff+n;
+    else if(calMode==='month'){mCur=a==='cnow'?today.slice(0,7):addMonths(mCur,n);selDay=null}
+    else yCur=a==='cnow'?+today.slice(0,4):yCur+n;render()}
+  else if(a==='cmode'){calMode=b.dataset.m;ls.set('mp.cal',calMode);openId=null;render()}
+  else if(a==='msel'){selDay=b.dataset.d;if(selDay.slice(0,7)!==mCur){mCur=selDay.slice(0,7)}openId=null;render();const c=$('.msel');c&&c.scrollIntoView&&innerWidth<1024&&c.scrollIntoView({block:'nearest',behavior:'smooth'})}
+  else if(a==='ymonth'||a==='yday'){calMode='month';ls.set('mp.cal','month');mCur=(b.dataset.m||b.dataset.d.slice(0,7));selDay=b.dataset.d||null;openId=null;render();scrollTo({top:0})}
   else if(a==='wadd'){draft.when='custom';draft.custom=b.dataset.d;$('#cdate').value=b.dataset.d;render();$('#q').focus();scrollTo({top:0,behavior:'smooth'})}
   else if(a==='pnew'||a==='pedit'){pform=a==='pedit'?{key:b.dataset.p}:{};clearTimeout(pdelArm);pdelArm=0;render();const f=$('#pform');f.scrollIntoView&&f.scrollIntoView({block:'nearest'});$('#pf-title').focus()}
   else if(a==='pcancel'){const back=pform&&pform.fromAdd?pform.back:null;pform=null;if(back)view=back;render()}
@@ -277,7 +310,10 @@ addEventListener('online',()=>showStatus());addEventListener('offline',()=>showS
 
 /* ---------- account menu: backup, sign out ---------- */
 const menu=$('#menu');
-$('#acct').addEventListener('click',()=>{menu.hidden=!menu.hidden});
+function placeMenu(){const r=$('#acct').getBoundingClientRect(),w=menu.offsetWidth||240;
+  menu.style.top=Math.round(r.bottom+8)+'px';menu.style.left=Math.round(Math.min(Math.max(8,r.right-w),innerWidth-w-8))+'px'}
+$('#acct').addEventListener('click',()=>{menu.hidden=!menu.hidden;if(!menu.hidden)placeMenu()});
+addEventListener('resize',()=>{if(!menu.hidden)placeMenu()});addEventListener('scroll',()=>{if(!menu.hidden)menu.hidden=true},{passive:true});
 document.addEventListener('click',e=>{if(!menu.hidden&&!e.target.closest('#menu,#acct'))menu.hidden=true});
 $('#m-export').addEventListener('click',()=>{const data={app:'my-planner',version:1,exported:new Date().toISOString(),tasks:[...tasks.values()],projects:[...projects.values()],routines:[...routines.values()]};
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));a.download='my-planner-backup-'+today+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);menu.hidden=true});

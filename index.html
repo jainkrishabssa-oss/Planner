@@ -112,7 +112,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 @media(prefers-reduced-motion:reduce){.task.new{animation:none}}
 .hdr-r{display:flex;gap:8px;align-items:center;position:relative}
 .acct{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:none;color:var(--ink);cursor:pointer;display:grid;place-items:center}
-.menu{position:absolute;right:0;top:48px;z-index:5;background:var(--bg);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgb(0 0 0/.15);padding:6px;min-width:230px}
+.menu{position:fixed;right:auto;top:0;left:0;z-index:50;background:var(--bg);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgb(0 0 0/.15);padding:6px;min-width:230px}
 .menu[hidden]{display:none}
 .menu .who{font-size:13px;color:var(--mute);padding:8px 10px;border-bottom:1px solid var(--line);margin-bottom:4px;overflow-wrap:anywhere}
 .menu button{display:block;width:100%;text-align:left;border:0;background:none;color:var(--ink);font:500 15px Inter,sans-serif;padding:0 10px;min-height:44px;border-radius:8px;cursor:pointer}
@@ -218,6 +218,42 @@ form.add{border:1.5px solid color-mix(in srgb,var(--acc) 55%,transparent);border
 .link{color:var(--acc)}
 .meta .td{color:var(--acc)}
 ::selection{background:#DFB6B2;color:#190019}
+/* calendar: week / month / year */
+.calbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:16px 0 0}
+.calnav{display:flex;align-items:center;gap:8px}
+.calnav b{font:600 18px 'Inter Tight',sans-serif;min-width:150px;text-align:center}
+.mgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-top:12px}
+.mh{font-size:12px;font-weight:600;color:var(--mute);text-align:center;padding-bottom:2px}
+.mday{min-height:104px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);text-align:left;padding:6px 7px;display:flex;flex-direction:column;gap:3px;cursor:pointer;font:inherit;overflow:hidden;box-shadow:0 1px 2px var(--shadow)}
+.mday:hover{border-color:color-mix(in srgb,var(--acc) 50%,var(--line))}
+.mday.out{opacity:.45;box-shadow:none}
+.mday .dn{font:600 13px Inter,sans-serif;color:var(--mute)}
+.mday.now .dn{background:var(--acc);color:var(--bg);border-radius:99px;padding:0 7px;align-self:flex-start}
+.mday.sel{border:2px solid var(--acc);padding:5px 6px}
+.mday.late .dn{color:var(--red)}.mday.now.late .dn{color:var(--bg)}
+.mt{font-size:12px;line-height:1.3;padding:2px 6px;border-radius:6px;background:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mt.critical{background:var(--reds);color:var(--red)}.mt.high{background:var(--ambs);color:var(--amb)}
+.mt.dn2{text-decoration:line-through;opacity:.55}
+.more{font-size:11px;color:var(--mute);padding-left:4px}
+.mdots{display:none;gap:3px;flex-wrap:wrap}.mdots i{width:6px;height:6px;border-radius:50%;background:var(--acc)}
+.mdots i.critical{background:var(--red)}.mdots i.high{background:var(--amb)}.mdots i.dn2{opacity:.35}
+.msel{margin-top:14px}.msel .addd{margin:4px 6px 4px}
+.ygrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-top:12px}
+.ygrid .card{margin:0;padding:0 10px 10px}
+.ym.cur{border:2px solid var(--acc)}
+.ymh{display:flex;justify-content:space-between;width:100%;border:0;background:none;color:var(--ink);font:600 15px 'Inter Tight',sans-serif;padding:10px 4px 6px;cursor:pointer}
+.ymh span+span{font:500 12px Inter,sans-serif;color:var(--mute);align-self:center}
+.ycal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
+.yw{font-size:10px;font-weight:600;color:var(--mute);text-align:center}
+.yd{aspect-ratio:1;border:0;border-radius:6px;background:none;color:var(--ink);font:500 11px Inter,sans-serif;cursor:pointer;padding:0;min-width:0}
+.yd:hover{outline:1px solid var(--acc)}
+.yd.hd{background:color-mix(in srgb,var(--soft) 70%,transparent)}
+.yd.h1{background:color-mix(in srgb,var(--acc) 22%,transparent)}
+.yd.h2{background:color-mix(in srgb,var(--acc) 45%,transparent)}
+.yd.h3{background:var(--acc);color:var(--bg)}
+.yd.late{box-shadow:inset 0 0 0 2px var(--red)}
+.yd.now{outline:2px solid var(--ink);outline-offset:-2px}
+@media(max-width:600px){.mday{min-height:58px;padding:5px;border-radius:10px}.mt,.more{display:none}.mdots{display:flex}.mgrid{gap:4px}.calnav b{min-width:0;font-size:16px}}
 </style>
 </head>
 <body>
