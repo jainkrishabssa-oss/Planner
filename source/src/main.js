@@ -16,9 +16,10 @@ const DOWS=['sunday','monday','tuesday','wednesday','thursday','friday','saturda
 
 let today=iso(new Date());
 let tasks=new Map(), be=null, mode='loading', pending=false, flash='', clearArm=0;
-let view=ls.get('mp.view','today'), area=ls.get('mp.area','all'), openId=null, openProj=null;
+let view='today', area=ls.get('mp.area','all'), openId=null, openProj=null;
 let draft={when:'today',custom:'',area:ls.get('mp.newArea','work'),pri:'normal',project:'',kind:'task'};
 const CATS=['Client','Internal','Admin','Planning','Finance','Health','Home','Travel','Learning'];
+const MYDAY=!!window.PLANNER_MYDAY;let pipWin=null;
 let calMode=ls.get('mp.cal','week'), mCur=null, yCur=null, selDay=null;
 let routines=new Map(), wOff=0, rOpen=null, rdelArm=0;
 let projects=new Map(), pform=null, pcat='all', pdelArm=0, PIDX=new Map();
@@ -159,6 +160,60 @@ function pformHtml(){const p=pform.key?projByTitle(pform.key):null,ar=p?p.area:(
 <label>Category<input id="pf-cat" list="catlist" value="${esc(p?p.category:'')}" placeholder="Pick one or type your own"></label>
 <div class="acts full"><span>${p?'<button class="ghost" data-act="pdel">Delete project</button>':''}</span><span style="display:flex;gap:8px"><button class="chip" data-act="pcancel">Cancel</button><button class="btn" data-act="psave">Save project</button></span></div></div>`}
 
+/* ---------- My Day: compact agenda for the phone page and the laptop pop-out ---------- */
+const nowHM=()=>{const d=new Date();return pad(d.getHours())+':'+pad(d.getMinutes())};
+function miniRow(t){const done=t.status==='done',m=[];
+  if(t.kind==='visit')m.push('<span class="pill v">Meeting</span>');
+  if(t.due&&t.due<today&&!done)m.push(`<span class="od">${fmt(t.due,{month:'short',day:'numeric'})}</span>`);
+  if(t.time)m.push(`<span class="tm">${fmtTime(t.time)}</span>`);
+  if(t.location)m.push(`<a class="loc" href="${mapUrl(t.location)}" target="_blank" rel="noopener">${PIN}${esc(isLink(t.location)?'Join link':t.location)}</a>`);
+  if(t.project)m.push(`<span>${esc(t.project)}</span>`);
+  if(!done&&t.priority==='critical')m.push('<span class="pill c">Critical</span>');
+  return `<div class="task mini ${t.priority} ${done?'done':''}" data-id="${t.id}"><button class="ck" data-act="toggle" aria-label="${done?'Mark not done':'Mark done'}: ${esc(t.title)}"><i>${done?CHECK:''}</i></button><div class="body"><div class="t">${esc(t.title)}</div>${m.length?`<div class="meta">${m.join('')}</div>`:''}</div></div>`}
+function mydayHtml(inPip){
+  const A=[...tasks.values()],open=A.filter(t=>t.status!=='done'),hm=nowHM();
+  const od=open.filter(t=>t.due&&t.due<today).sort(sortT),td=A.filter(t=>t.due===today).sort((a,b)=>(a.status==='done')-(b.status==='done')||sortT(a,b));
+  const meet=td.filter(t=>t.kind==='visit'),due=td.filter(t=>t.kind!=='visit');
+  const next=meet.filter(t=>t.status!=='done'&&t.time&&t.time>=hm).sort(sortT)[0];
+  const RS=rSorted(),rl=RS.filter(r=>!rDone(r,pkey(r.freq,today))).length;
+  const card=(title,list,band)=>list.length?`<section class="card ${band}"><h2><span>${title}</span><span>${list.filter(t=>t.status!=='done').length}</span></h2>${list.map(miniRow).join('')}</section>`:'';
+  let h=`<div class="md-head"><div><div class="dow">${fmt(today,{weekday:'long'})}</div><div class="md-date">${fmt(today,{month:'long',day:'numeric'})}</div></div><div class="md-counts"><span><b class="${od.length?'odc':''}">${od.length}</b> overdue</span><span><b>${td.filter(t=>t.status!=='done').length}</b> today</span></div></div>`;
+  if(next)h+=`<div class="md-next"><span class="lbl">Next up · ${fmtTime(next.time)}</span><b>${esc(next.title)}</b>${next.location?`<a class="loc" href="${mapUrl(next.location)}" target="_blank" rel="noopener">${PIN}${esc(isLink(next.location)?'Join link':next.location)}</a>`:''}</div>`;
+  h+=card('Overdue',od,'b-red')+card('Meetings today',meet,'b-purple')+card('Due today',due,'b-orange');
+  if(RS.length)h+=`<section class="card b-green"><h2><span>Routines</span><span>${RS.length-rl}/${RS.length}</span></h2>${RS.map(rTodayRow).join('')}</section>`;
+  if(!od.length&&!td.length)h+='<p class="md-empty">Nothing planned for today.</p>';
+  let wk='';for(let i=1;i<=6;i++){const d=addDays(today,i),l=open.filter(t=>t.due===d).sort(sortT);
+    wk+=`<div class="md-day"><span class="md-dn">${fmt(d,{weekday:'short'})} <b>${pd(d).getDate()}</b></span><span class="md-items">${l.slice(0,2).map(t=>`${t.time?`<b>${fmtTime(t.time).replace(':00','')}</b> `:''}${esc(t.title)}`).join(' · ')||'<span class="muted">—</span>'}${l.length>2?` <span class="muted">+${l.length-2}</span>`:''}</span></div>`}
+  h+=`<section class="card b-blue"><h2><span>Coming up this week</span><span>${open.filter(t=>t.due>today&&t.due<=addDays(today,6)).length}</span></h2><div class="md-week">${wk}</div></section>`;
+  if(!inPip)h+=`<a class="md-open" href="./">Open full planner →</a>`;
+  return h}
+async function openPip(){
+  if(pipWin){pipWin.focus&&pipWin.focus();return}
+  try{pipWin=await documentPictureInPicture.requestWindow({width:380,height:620})}catch(e){toast('Couldn’t open the pop-out window');return}
+  const d=pipWin.document;d.documentElement.setAttribute('lang','en');d.title='My Day';
+  document.querySelectorAll('style,link[rel=stylesheet]').forEach(n=>d.head.appendChild(n.cloneNode(true)));
+  d.body.className='pip';d.body.innerHTML='<div id="pipbody" class="myday-list"></div>';
+  d.body.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)return;
+    if(b.dataset.act==='toggle'){toggleTask(b.closest('[data-id]').dataset.id)}else if(b.dataset.act==='rtoday'){const r=routines.get(b.dataset.r);if(r)toggleMark(r.id,pkey(r.freq,today))}});
+  pipWin.addEventListener('pagehide',()=>{pipWin=null});
+  render()}
+function toggleTask(id){const t=tasks.get(id);if(!t)return;const prev={status:t.status,doneAt:t.doneAt};const done=t.status!=='done';t.status=done?'done':'todo';t.doneAt=done?Date.now():0;persist(id);render();
+  if(done)toast('Done: '+t.title,()=>{Object.assign(t,prev);persist(id);render()})}
+
+/* ---------- add sheet ---------- */
+const sheet=()=>$('#sheet');
+function openAdd(pre){pre=pre||{};
+  draft.kind=pre.kind||'task';
+  if(pre.due!==undefined){const d=pre.due;if(!d){draft.when='none'}else if(d===today){draft.when='today'}else if(d===addDays(today,1)){draft.when='tomorrow'}else{draft.when='custom';draft.custom=d}$('#cdate').value=draft.when==='custom'?d:''}
+  if(pre.project!==undefined)draft.project=pre.project;
+  if(pre.area)draft.area=pre.area;
+  draft.pri='normal';render();sheet().hidden=false;$('#fab').hidden=true;
+  setTimeout(()=>$('#q').focus(),30)}
+function closeAdd(){sheet().hidden=true;$('#fab').hidden=false;$('#q').value='';document.activeElement&&document.activeElement.blur()}
+function nextUpHtml(){const d0=new Date(),hm=pad(d0.getHours())+':'+pad(d0.getMinutes());
+  const n=[...tasks.values()].filter(t=>t.kind==='visit'&&t.status!=='done'&&t.due===today&&t.time&&t.time>=hm).sort(sortT)[0];
+  if(!n)return '';return `<div class="nextup"><span class="lbl">Next up · ${fmtTime(n.time)}</span><b>${esc(n.title)}</b>${n.location?`<a class="loc" href="${mapUrl(n.location)}" target="_blank" rel="noopener">${PIN}${esc(isLink(n.location)?'Join link':n.location)}</a>`:''}</div>`}
+
 function render(){
   const ae=document.activeElement;if(ae&&ae.matches('input,textarea,select')&&ae.closest('.edit,.pform,.radd')){pending=true;return}
   pending=false;const PLall=projList();PIDX=new Map(PLall.map(p=>[p.key,p]));
@@ -176,6 +231,7 @@ function render(){
   $('#cdate').setAttribute('aria-pressed',draft.when==='custom');
   $$('[data-area]').forEach(b=>b.setAttribute('aria-pressed',draft.area===b.dataset.area));
   $$('[data-pri]').forEach(b=>b.setAttribute('aria-pressed',draft.pri===b.dataset.pri));
+  $('#nextup').innerHTML=mode==='loading'?'':nextUpHtml();$('#sheet-title').textContent=draft.kind==='visit'?'New meeting':'New task';
   $$('[data-kind]').forEach(b=>b.setAttribute('aria-pressed',draft.kind===b.dataset.kind));$('#vrow').hidden=draft.kind!=='visit';$('#q').placeholder=draft.kind==='visit'?'What is the meeting? e.g. Client review':'Add a task…';
   const psel=$('#proj');if(document.activeElement!==psel){if(draft.project&&!PLall.some(p=>same(p.title,draft.project)))draft.project='';psel.innerHTML=projOptions(draft.project,true);psel.value=PLall.find(p=>same(p.title,draft.project))?.title||'';}
   psel.setAttribute('aria-pressed',!!draft.project);
@@ -184,12 +240,14 @@ function render(){
   $('#catlist').innerHTML=[...new Set([...PLall.map(p=>p.category).filter(Boolean),...CATS])].map(c=>`<option value="${esc(c)}">`).join('');
   let h='';
   if(mode==='loading')h=empty('Loading your tasks…','');
+  else if(MYDAY)h=mydayHtml(false);
   else if(view==='today'){const dn=A.filter(t=>t.status==='done'&&t.doneAt&&iso(new Date(t.doneAt))===today);
     const vt=P.td.filter(t=>t.kind==='visit'),tt=P.td.filter(t=>t.kind!=='visit');
-    h=sec('Overdue',P.od,'b-red')+sec('Meetings today',vt,'b-purple')+sec('Due today',tt,'b-orange')+sec('Critical, coming up',P.cr,'b-yellow')+sec('In progress',P.dg,'b-blue')
-      +(RS.length?`<section class="card b-green"><h2><span>Routines</span><span>${RS.length-rLeft}/${RS.length} done</span></h2>${RS.map(rTodayRow).join('')}</section>`:'')
+    const addB=(k,l)=>`<button class="link addd" data-act="qadd" data-k="${k}">+ ${l}</button>`;
+    h=sec('Overdue',P.od,'b-red')+sec('Meetings today',vt,'b-purple',addB('visit','Add meeting'))+sec('Due today',tt,'b-orange',addB('task','Add to today'))+sec('Critical, coming up',P.cr,'b-yellow')+sec('In progress',P.dg,'b-blue')
+      +(RS.length?`<section class="card b-green"><h2><span>Routines</span><span>${RS.length-rLeft}/${RS.length} done</span></h2>${RS.map(rTodayRow).join('')}<button class="link addd" data-act="gor">+ Add routine</button></section>`:'')
       +sec('Done today',dn,'b-gray');
-    if(!P.od.length&&!P.td.length&&!P.cr.length&&!P.dg.length)h=empty('Nothing due today','Add a task above, or look at Week and Upcoming.')+h}
+    if(!P.od.length&&!P.td.length&&!P.cr.length&&!P.dg.length)h=`<div class="empty"><b>Nothing due today</b>Enjoy the breathing room, or plan something.<div class="qbtns"><button class="chip" data-act="qadd" data-k="task">+ Add a task</button><button class="chip" data-act="qadd" data-k="visit">+ Add a meeting</button></div></div>`+h}
   else if(view==='week'&&calMode!=='week'){const byDay=new Map();A.forEach(t=>{if(t.due){byDay.has(t.due)||byDay.set(t.due,[]);byDay.get(t.due).push(t)}});
     if(!mCur)mCur=today.slice(0,7);if(!yCur)yCur=+today.slice(0,4);
     h=calMode==='month'?monthView(byDay):yearView(byDay)}
@@ -220,7 +278,8 @@ function render(){
     if(!RS.length)h+=empty('No routines yet','Things you repeat, like checking emails daily or paying bills monthly. Tick them off each day, week, month, quarter or year.')}
   else{const d=A.filter(t=>t.status==='done').sort((a,b)=>(b.doneAt||0)-(a.doneAt||0));
     h=d.length?`<div class="bar"><span class="hint">${d.length} finished</span><button class="link" data-act="clear">${clearArm?'Tap again to delete them':'Clear finished tasks'}</button></div><section class="card b-green"><h2><span>Finished</span><span>${d.length}</span></h2>${d.map(row).join('')}</section>`:empty('Nothing finished yet','Tick a task to move it here.')}
-  const LE=$('#list');LE.className='v-'+view;LE.innerHTML=h;flash='';
+  const LE=$('#list');LE.className=MYDAY?'myday-list':'v-'+view;LE.innerHTML=h;flash='';
+  if(pipWin){const pb=pipWin.document.getElementById('pipbody');if(pb)pb.innerHTML=mode==='loading'?'':mydayHtml(true)}
   $$('.rgrid').forEach(g=>{const c=g.querySelector('.rhead .cur');if(c&&c.offsetLeft+c.offsetWidth>g.clientWidth)g.scrollLeft=c.offsetLeft+c.offsetWidth-g.clientWidth+40});
 }
 
@@ -233,19 +292,18 @@ $('#add').addEventListener('submit',e=>{e.preventDefault();const p=parseQ($('#q'
   const t={id:newId(),title:p.title,kind:vis?'visit':'task',time:tm,location:loc,due:p.due??dueFromDraft(),priority:p.priority||draft.pri,status:'todo',project:pj?pj.title:pr,area:p.area||(pj?pj.area:draft.area),notes:'',created:Date.now(),doneAt:0};
   if(vis){$('#vtime').value='';$('#vloc').value=''}
   tasks.set(t.id,t);persist(t.id);ensureProject(t.project,t.area);flash=t.id;$('#q').value='';draft.pri='normal';
-  const P=todayParts([t]);const inToday=P.od.length+P.td.length+P.cr.length>0;
-  if(view==='done'||(view==='today'&&!inToday)||(view==='upcoming'&&inToday&&t.due===today)||(area!=='all'&&area!==t.area))toast('Added'+(t.due?' for '+fmt(t.due):'')+(inToday?' · shows in Today':' · shows in Upcoming'));
-  render()});
+  closeAdd();render();
+  toast((t.kind==='visit'?'Meeting added':'Added')+(t.due?(t.due===today?' for today':' for '+fmt(t.due)):'')+(t.time?' at '+fmtTime(t.time):''),()=>{tasks.delete(t.id);persist(t.id);render()})});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-when],[data-area],[data-pri],[data-a],[data-v],[data-go],[data-kind]');if(!b)return;
   if(b.dataset.kind){draft.kind=b.dataset.kind;render();if(draft.kind==='visit')$('#q').focus();return}
   if(b.dataset.when){draft.when=b.dataset.when;$('#cdate').value=''}
   if(b.dataset.area){draft.area=b.dataset.area;ls.set('mp.newArea',draft.area)}
   if(b.dataset.pri)draft.pri=b.dataset.pri;
   if(b.dataset.a){area=b.dataset.a;ls.set('mp.area',area)}
-  if(b.dataset.v||b.dataset.go){view=b.dataset.v||b.dataset.go;openId=null;ls.set('mp.view',view)}
+  if(b.dataset.v||b.dataset.go){view=b.dataset.v||b.dataset.go;openId=null;0}
   render()});
 $('#proj').addEventListener('change',e=>{const v=e.target.value;e.target.blur();
-  if(v==='__new'){pform={fromAdd:true,back:view};view='projects';openId=null;render();const f=$('#pform');f&&f.scrollIntoView&&f.scrollIntoView({block:'center'});$('#pf-title')&&$('#pf-title').focus();return}
+  if(v==='__new'){closeAdd();pform={fromAdd:true,back:view};view='projects';openId=null;render();const f=$('#pform');f&&f.scrollIntoView&&f.scrollIntoView({block:'center'});$('#pf-title')&&$('#pf-title').focus();return}
   draft.project=v;const p=projByTitle(v);if(p)draft.area=p.area;render()});
 $('#cdate').addEventListener('change',e=>{if(e.target.value){draft.when='custom';draft.custom=e.target.value}else draft.when='none';render()});
 
@@ -258,7 +316,7 @@ function saveProject(){const title=$('#pf-title').value.trim();if(!title){$('#pf
   if(old)tasks.forEach(t=>{if(same(t.project,old.title)&&(t.project!==title||t.area!==ar)){t.project=title;t.area=ar;persist(t.id)}});
   if(!old||openProj===old.key)openProj=title.toLowerCase();
   const fromAdd=pform.fromAdd,back=pform.back;pform=null;document.activeElement.blur();
-  if(fromAdd){draft.project=title;draft.area=ar;view=back||'today';render();$('#q').focus();scrollTo({top:0,behavior:'smooth'});toast('Project added · now type your task');return}
+  if(fromAdd){view=back||'today';openAdd({project:title,area:ar,kind:draft.kind});toast('Project added · now type your task');return}
   render();toast(old?'Project updated':'Project added · tap it to add tasks')}
 
 /* list actions */
@@ -266,16 +324,15 @@ const L=$('#list');
 L.addEventListener('click',e=>{if(e.target.closest('a.loc'))return;const pa=e.target.closest('[data-pfa]');if(pa){$$('[data-pfa]').forEach(x=>x.setAttribute('aria-pressed',x===pa));$('#pf-co-wrap').hidden=pa.dataset.pfa==='personal';return}
   const b=e.target.closest('[data-act]');if(!b)return;const el=b.closest('[data-id]'),id=el&&el.dataset.id,t=id&&tasks.get(id);
   const a=b.dataset.act;
-  if(a==='toggle'&&t){const prev={status:t.status,doneAt:t.doneAt};const done=t.status!=='done';t.status=done?'done':'todo';t.doneAt=done?Date.now():0;persist(id);render();
-    if(done)toast('Done: '+t.title,()=>{Object.assign(t,prev);persist(id);render()})}
+  if(a==='toggle'&&t){toggleTask(id)}
   else if(a==='open'&&t){if(e.target.closest('.edit'))return;openId=openId===id?null:id;render()}
   else if(a==='close'){openId=null;render()}
   else if(a==='del'&&t){const copy={...t};tasks.delete(id);openId=null;persist(id);render();toast('Deleted: '+copy.title,()=>{tasks.set(id,copy);persist(id);render()})}
   else if(a==='proj'){openProj=openProj===b.dataset.p?null:b.dataset.p;render()}
-  else if(a==='addto'){const p=projByTitle(b.dataset.p);if(p){draft.project=p.title;draft.area=p.area}render();$('#q').focus();$('#q').scrollIntoView({block:'center'})}
+  else if(a==='addto'){const p=projByTitle(b.dataset.p);openAdd(p?{project:p.title,area:p.area}:{})}
   else if(a==='rbox'){toggleMark(b.dataset.r,b.dataset.k)}
   else if(a==='rtoday'){const r=routines.get(b.dataset.r);if(r)toggleMark(r.id,pkey(r.freq,today))}
-  else if(a==='gor'){view='routines';ls.set('mp.view',view);render();scrollTo({top:0})}
+  else if(a==='gor'){if(MYDAY)return;view='routines';render();scrollTo({top:0});setTimeout(()=>{const i=$('#r-title');i&&i.focus()},50)}
   else if(a==='ropen'){rOpen=rOpen===b.dataset.r?null:b.dataset.r;clearTimeout(rdelArm);rdelArm=0;render()}
   else if(a==='rclose'){rOpen=null;document.activeElement.blur();render()}
   else if(a==='rdel'){if(!rdelArm){b.textContent='Tap again to delete';rdelArm=setTimeout(()=>{rdelArm=0;b.textContent='Delete routine'},4000);return}
@@ -288,7 +345,8 @@ L.addEventListener('click',e=>{if(e.target.closest('a.loc'))return;const pa=e.ta
   else if(a==='cmode'){calMode=b.dataset.m;ls.set('mp.cal',calMode);openId=null;render()}
   else if(a==='msel'){selDay=b.dataset.d;if(selDay.slice(0,7)!==mCur){mCur=selDay.slice(0,7)}openId=null;render();const c=$('.msel');c&&c.scrollIntoView&&innerWidth<1024&&c.scrollIntoView({block:'nearest',behavior:'smooth'})}
   else if(a==='ymonth'||a==='yday'){calMode='month';ls.set('mp.cal','month');mCur=(b.dataset.m||b.dataset.d.slice(0,7));selDay=b.dataset.d||null;openId=null;render();scrollTo({top:0})}
-  else if(a==='wadd'){draft.when='custom';draft.custom=b.dataset.d;$('#cdate').value=b.dataset.d;render();$('#q').focus();scrollTo({top:0,behavior:'smooth'})}
+  else if(a==='wadd'){openAdd({due:b.dataset.d})}
+  else if(a==='qadd'){openAdd({kind:b.dataset.k,due:today})}
   else if(a==='pnew'||a==='pedit'){pform=a==='pedit'?{key:b.dataset.p}:{};clearTimeout(pdelArm);pdelArm=0;render();const f=$('#pform');f.scrollIntoView&&f.scrollIntoView({block:'nearest'});$('#pf-title').focus()}
   else if(a==='pcancel'){const back=pform&&pform.fromAdd?pform.back:null;pform=null;if(back)view=back;render()}
   else if(a==='pcat'){pcat=b.dataset.c;render()}
@@ -313,9 +371,16 @@ L.addEventListener('submit',e=>{if(e.target.id!=='radd')return;e.preventDefault(
 L.addEventListener('focusout',()=>setTimeout(()=>{const ae=document.activeElement;if(pending&&!(ae&&ae.matches('input,textarea,select')&&ae.closest('.edit,.pform,.radd')))render()},0));
 
 /* keep "today" fresh */
-const tick=()=>{const n=iso(new Date());if(n!==today){today=n;render()}};
+const tick=()=>{const n=iso(new Date());if(n!==today){today=n;render()}else if(MYDAY||pipWin)render();else if(mode!=='loading'){const nu=$('#nextup');if(nu)nu.innerHTML=nextUpHtml()}};
 setInterval(tick,60000);document.addEventListener('visibilitychange',tick);
 
+
+/* ---------- add sheet wiring ---------- */
+$('#fab').addEventListener('click',()=>openAdd({due:today}));
+$('#newbtn').addEventListener('click',()=>openAdd({due:today}));
+$('#sheet').addEventListener('click',e=>{if(e.target.closest('[data-close]'))closeAdd()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!sheet().hidden){closeAdd();return}
+  if((e.key==='n'||e.key==='N')&&!e.metaKey&&!e.ctrlKey&&!e.altKey&&sheet().hidden&&!e.target.closest('input,textarea,select,[contenteditable]')&&!$('#app').hidden){e.preventDefault();openAdd({due:today})}});
 
 /* ---------- sync status ---------- */
 let lastStatus={};
@@ -334,6 +399,8 @@ function placeMenu(){const r=$('#acct').getBoundingClientRect(),w=menu.offsetWid
 $('#acct').addEventListener('click',()=>{menu.hidden=!menu.hidden;if(!menu.hidden)placeMenu()});
 addEventListener('resize',()=>{if(!menu.hidden)placeMenu()});addEventListener('scroll',()=>{if(!menu.hidden)menu.hidden=true},{passive:true});
 document.addEventListener('click',e=>{if(!menu.hidden&&!e.target.closest('#menu,#acct'))menu.hidden=true});
+const canPip=false; /* My Day pop-out: parked for later */
+$$('.popout').forEach(b=>{b.hidden=!canPip;b.addEventListener('click',()=>{menu.hidden=true;openPip()})});
 $('#m-export').addEventListener('click',()=>{const data={app:'my-planner',version:1,exported:new Date().toISOString(),tasks:[...tasks.values()],projects:[...projects.values()],routines:[...routines.values()]};
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));a.download='my-planner-backup-'+today+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);menu.hidden=true});
 $('#m-import').addEventListener('click',()=>{$('#importfile').click()});
@@ -347,7 +414,7 @@ $('#m-out').addEventListener('click',async()=>{menu.hidden=true;await be.signOut
 
 /* ---------- sign in ---------- */
 const authBox=$('#auth');
-function showAuth(on){authBox.hidden=!on;$('#app').hidden=on}
+function showAuth(on){authBox.hidden=!on;$('#app').hidden=on;$('#fab').hidden=on;if(on)sheet().hidden=true}
 let authMode='in';
 function setAuthMode(m){authMode=m;$('#a-title').textContent=m==='in'?'Sign in to your planner':'Create your account';
   $('#a-go').textContent=m==='in'?'Sign in':'Create account';$('#a-switch').textContent=m==='in'?'New here? Create an account':'Already have an account? Sign in';
@@ -366,7 +433,7 @@ $('#a-reset').addEventListener('click',async()=>{const em=$('#a-email').value.tr
 function start(){
   const cfg=window.PLANNER_FIREBASE_CONFIG||{};const demo=new URLSearchParams(location.search).has('demo');
   const ready=cfg.apiKey&&!/PASTE/i.test(cfg.apiKey);
-  if(!ready&&!demo){$('#setup').hidden=false;$('#app').hidden=true;return}
+  if(!ready&&!demo){$('#setup').hidden=false;$('#app').hidden=true;$('#fab').hidden=true;return}
   try{be=ready&&!demo?firebaseBackend(cfg):demoBackend()}catch(e){$('#setup').hidden=false;$('#setup-msg').textContent='Firebase settings in config.js could not be read: '+(e.code||e.message);$('#app').hidden=true;return}
   setAuthMode('in');
   be.onUser(u=>{

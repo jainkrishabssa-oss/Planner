@@ -1,7 +1,7 @@
 // Offline support: keeps the app's files on the device so it opens without internet.
 // Change VERSION whenever you upload new app files, so devices pick up the update.
-const VERSION = 'planner-v8';
-const SHELL = ['./', './index.html', './app.js?v=8', './config.js', './manifest.webmanifest',
+const VERSION = 'planner-v10';
+const SHELL = ['./', './index.html', './app.js?v=10', './config.js', './manifest.webmanifest',
   './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png', './icons/icon-maskable-512.png'];
 
 self.addEventListener('install', e => {
@@ -21,8 +21,8 @@ self.addEventListener('fetch', e => {
   // Pages: try the network first (to get updates), fall back to the saved copy when offline.
   if (req.mode === 'navigate') {
     e.respondWith(timeout(fetch(req, { cache: 'no-cache' }), 4000).then(res => {
-      const copy = res.clone(); caches.open(VERSION).then(c => c.put('./index.html', copy)); return res;
-    }).catch(() => caches.match('./index.html')));
+      const copy = res.clone(); caches.open(VERSION).then(c => c.put(req, copy)); return res;
+    }).catch(() => caches.match(req, { ignoreSearch: true }).then(r => r || caches.match('./index.html'))));
     return;
   }
   // The app's own files: fetch fresh when online (so page and code always match),

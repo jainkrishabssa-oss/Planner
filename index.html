@@ -264,6 +264,56 @@ form.add{border:1.5px solid color-mix(in srgb,var(--acc) 55%,transparent);border
 .loc:hover{text-decoration:underline}
 .mt.vis{background:light-dark(#E6D3EA,#3B1C4A);color:light-dark(#522B5B,#E3C6EC)}
 .mt b{font-weight:700}
+/* My Day (phone page + laptop pop-out) */
+.pop-btn{display:block;width:100%;margin:-8px 0 16px;min-height:40px;border:1px dashed color-mix(in srgb,var(--acc) 50%,var(--line));border-radius:12px;background:none;color:var(--acc);font:600 14px Inter,sans-serif;cursor:pointer}
+.pop-btn[hidden],.popout[hidden]{display:none}
+@media(max-width:1023px){.pop-btn{display:none}}
+html.myday .side form.add,html.myday .side .hint,html.myday .tally,html.myday .main .tabs,html.myday .main .bar,html.myday .side header{display:none}
+html.myday #app{max-width:640px;display:block;padding-top:max(16px,env(safe-area-inset-top))}
+html.myday .side{position:static;max-height:none;overflow:visible}
+.myday-list .card{margin:10px 0}
+.md-head{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;margin:4px 2px 10px}
+.md-date{font:700 32px/1.05 'Inter Tight',sans-serif;letter-spacing:-.02em}
+.md-counts{display:flex;gap:12px;font-size:13px;color:var(--mute)}.md-counts b{font:700 18px 'Inter Tight',sans-serif;color:var(--ink)}.md-counts b.odc{color:var(--red)}
+.md-next{display:grid;gap:2px;padding:12px 14px;border-radius:14px;background:var(--acc);color:var(--bg);margin:8px 0 12px;box-shadow:0 10px 24px -14px var(--acc)}
+.md-next .lbl{font-size:12px;font-weight:600;opacity:.8}.md-next b{font:600 17px 'Inter Tight',sans-serif}.md-next .loc{color:inherit;opacity:.9}
+.task.mini .body{cursor:default;padding:8px 4px 8px 2px}.task.mini .ck{height:40px}
+.md-week{padding:4px 14px 8px}
+.md-day{display:grid;grid-template-columns:62px minmax(0,1fr);gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}
+.md-day:last-child{border-bottom:0}
+.md-dn{color:var(--mute);font-size:13px}.md-dn b{color:var(--ink)}
+.md-items{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.md-items b{font-weight:600}
+.muted{color:var(--mute)}
+.md-empty{color:var(--mute);text-align:center;padding:18px 0}
+.md-open{display:block;text-align:center;margin:16px 0 24px;color:var(--acc);font-weight:600;text-decoration:none;padding:12px}
+body.pip{padding:10px 12px;background:var(--page)}
+body.pip .md-date{font-size:26px}
+/* add sheet, floating +, next up */
+.newbtn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:48px;margin:0 0 14px;border:0;border-radius:14px;background:var(--acc);color:var(--bg);font:600 16px Inter,sans-serif;cursor:pointer;box-shadow:0 10px 22px -14px var(--acc)}
+.newbtn span{font-size:22px;line-height:1}
+@media(max-width:1023px){.newbtn{display:none}}
+.fab{position:fixed;right:max(18px,env(safe-area-inset-right));bottom:max(18px,env(safe-area-inset-bottom));z-index:30;width:58px;height:58px;border-radius:50%;border:0;background:var(--acc);color:var(--bg);font:400 32px/1 Inter,sans-serif;cursor:pointer;box-shadow:0 12px 28px -10px var(--shadow),0 6px 16px -8px var(--acc)}
+.fab:hover{filter:brightness(1.08)}
+.fab[hidden]{display:none}
+@media(min-width:1024px){.fab{display:none}}
+.sheet{position:fixed;inset:0;z-index:60;display:flex;align-items:flex-end;justify-content:center}
+.sheet[hidden]{display:none}
+.sheet-bg{position:absolute;inset:0;background:rgb(25 0 25 / .38)}
+.sheet-panel{position:relative;width:100%;max-width:560px;max-height:92vh;overflow:auto;background:var(--page);border-radius:22px 22px 0 0;padding:14px 16px max(18px,env(safe-area-inset-bottom));box-shadow:0 -10px 40px -10px var(--shadow);animation:up .22s ease}
+@keyframes up{from{transform:translateY(30px);opacity:.4}}
+@media(min-width:700px){.sheet{align-items:center}.sheet-panel{border-radius:22px;padding:16px 18px 18px}}
+@media(prefers-reduced-motion:reduce){.sheet-panel{animation:none}}
+.sheet-head{display:flex;justify-content:space-between;align-items:center;margin:0 2px 10px}
+.sheet-head h3{margin:0;font:600 20px 'Inter Tight',sans-serif}
+.sheet-x{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:22px;cursor:pointer}
+.sheet .grp{border-right:0;padding-right:0}
+.sheet #proj,.sheet #cdate{flex:1 1 160px;width:auto}
+#nextup:empty{display:none}
+.nextup{display:grid;gap:2px;padding:12px 14px;border-radius:14px;background:var(--acc);color:var(--bg);margin:0 0 14px;box-shadow:0 10px 24px -14px var(--acc)}
+.nextup .lbl{font-size:12px;font-weight:600;opacity:.85}.nextup b{font:600 17px 'Inter Tight',sans-serif}.nextup .loc{color:inherit;opacity:.9}
+.card .addd{display:block;margin:2px 6px 4px}
+.qbtns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+.main{padding-bottom:70px}
 </style>
 </head>
 <body>
@@ -293,10 +343,29 @@ form.add{border:1.5px solid color-mix(in srgb,var(--acc) 55%,transparent);border
       <span class="sync" id="sync"><i></i><span>Connecting…</span></span>
       <button class="acct" id="acct" aria-label="Account and backup" aria-haspopup="true"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4.8 19.5c1.4-3.2 4-4.8 7.2-4.8s5.8 1.6 7.2 4.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
       <div class="menu" id="menu" hidden><div class="who" id="who"></div>
-        <button id="m-export">Download a backup</button><button id="m-import">Restore from a backup</button><button id="m-out">Sign out</button></div>
+        <button id="m-pip" class="popout" hidden>Pop out My Day</button><button id="m-export">Download a backup</button><button id="m-import">Restore from a backup</button><button id="m-out">Sign out</button></div>
     </div>
   </header>
   <div class="tally" id="tally"></div>
+  <button class="newbtn" id="newbtn" type="button"><span aria-hidden="true">+</span> New task</button>
+  <div id="nextup"></div>
+
+  </aside>
+  <div class="main">
+  <nav class="tabs" role="tablist" id="tabs"></nav>
+  <div class="bar">
+    <div class="seg" id="seg" role="group" aria-label="Show">
+      <button type="button" data-a="all">All</button><button type="button" data-a="work">Work</button><button type="button" data-a="personal">Personal</button>
+    </div>
+  </div>
+  <main id="list"><div class="empty"><b>Loading your tasks…</b></div></main>
+  </div>
+</div>
+<button class="fab" id="fab" type="button" aria-label="Add a task or meeting">+</button>
+<div class="sheet" id="sheet" hidden>
+  <div class="sheet-bg" data-close></div>
+  <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+    <div class="sheet-head"><h3 id="sheet-title">New task</h3><button class="sheet-x" type="button" data-close aria-label="Close">&times;</button></div>
   <form class="add" id="add" autocomplete="off">
     <div class="addrow"><input id="q" placeholder="Add a task…" aria-label="New task" enterkeyhint="done"><button class="btn" type="submit">Add</button></div>
     <div class="opts">
@@ -328,21 +397,12 @@ form.add{border:1.5px solid color-mix(in srgb,var(--acc) 55%,transparent);border
     </div>
   </form>
   <p class="hint">Shortcuts while typing: <code>#project</code> &middot; <code>!</code> critical &middot; <code>@personal</code> &middot; <code>today</code>, <code>tomorrow</code>, <code>friday</code> &middot; <code>3pm</code></p>
-  </aside>
-  <div class="main">
-  <nav class="tabs" role="tablist" id="tabs"></nav>
-  <div class="bar">
-    <div class="seg" id="seg" role="group" aria-label="Show">
-      <button type="button" data-a="all">All</button><button type="button" data-a="work">Work</button><button type="button" data-a="personal">Personal</button>
-    </div>
-  </div>
-  <main id="list"><div class="empty"><b>Loading your tasks…</b></div></main>
   </div>
 </div>
 <datalist id="projlist"></datalist><datalist id="companylist"></datalist><datalist id="catlist"></datalist>
 <div class="toast" id="toast" hidden role="status"><span></span><button type="button">Undo</button></div>
 <input type="file" id="importfile" accept="application/json,.json" hidden>
 <script src="config.js"></script>
-<script type="module" src="app.js?v=8"></script>
+<script type="module" src="app.js?v=10"></script>
 </body>
 </html>
