@@ -178,7 +178,7 @@ function render(){
     if(!RS.length)h+=empty('No routines yet','Things you repeat, like checking emails daily or paying bills monthly. Tick them off each day, week, month, quarter or year.')}
   else{const d=A.filter(t=>t.status==='done').sort((a,b)=>(b.doneAt||0)-(a.doneAt||0));
     h=d.length?`<div class="bar"><span class="hint">${d.length} finished</span><button class="link" data-act="clear">${clearArm?'Tap again to delete them':'Clear finished tasks'}</button></div><section class="card b-green"><h2><span>Finished</span><span>${d.length}</span></h2>${d.map(row).join('')}</section>`:empty('Nothing finished yet','Tick a task to move it here.')}
-  $('#list').innerHTML=h;flash='';
+  const LE=$('#list');LE.className='v-'+view;LE.innerHTML=h;flash='';
   $$('.rgrid').forEach(g=>{const c=g.querySelector('.rhead .cur');if(c&&c.offsetLeft+c.offsetWidth>g.clientWidth)g.scrollLeft=c.offsetLeft+c.offsetWidth-g.clientWidth+40});
 }
 

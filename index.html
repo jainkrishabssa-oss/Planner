@@ -169,6 +169,29 @@ form.add,.tally button{background:var(--card)}.tally button{border:1px solid var
 .tab{flex:none}
 .rname,.rhead>span:first-child{position:sticky;left:0;background:var(--card);z-index:1}
 @media(max-width:600px){.rrow{--cw:30px!important}}
+/* wide screens: side panel + full-width lists */
+@media(min-width:1024px){
+  #app{max-width:1480px;display:grid;grid-template-columns:minmax(330px,390px) minmax(0,1fr);gap:clamp(28px,3vw,48px);align-items:start}
+  #app[hidden]{display:none}
+  .side{position:sticky;top:clamp(20px,3vw,40px);max-height:calc(100vh - 40px);overflow:auto;padding:2px 2px 12px}
+  .side header{flex-wrap:wrap}
+  .side h1{font-size:44px}
+  .side .tally{margin:18px 0}
+  .side .tally b{font-size:28px}
+  .side .opts{gap:6px}.side .grp{border-right:0;padding-right:0}
+  .side #proj,.side #cdate{flex:1 1 150px;width:auto}
+  .main .tabs{margin-top:0}
+  .wk{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+}
+@media(min-width:1280px){
+  #list.v-today,#list.v-upcoming,#list.v-done{columns:2 380px;column-gap:16px}
+  #list.v-today>*,#list.v-upcoming>*,#list.v-done>*{break-inside:avoid}
+  #list.v-today>.card:first-child,#list.v-upcoming>.card:first-child,#list.v-done>.card:first-of-type{margin-top:0}
+  #list.v-today>.empty,#list.v-done>.bar{column-span:all}
+  #list.v-routines{display:grid;grid-template-columns:repeat(auto-fit,minmax(440px,1fr));column-gap:16px;align-items:start}
+  #list.v-routines>.radd,#list.v-routines>.empty,#list.v-routines>datalist{grid-column:1/-1}
+  #list.v-routines>.card{margin:8px 0}
+}
 </style>
 </head>
 <body>
@@ -191,6 +214,7 @@ form.add,.tally button{background:var(--card)}.tally button{border:1px solid var
 </section>
 
 <div class="wrap" id="app">
+  <aside class="side">
   <header>
     <div><div class="dow" id="dow"></div><h1 id="date">Today</h1></div>
     <div class="hdr-r">
@@ -224,6 +248,8 @@ form.add,.tally button{background:var(--card)}.tally button{border:1px solid var
     </div>
   </form>
   <p class="hint">Shortcuts while typing: <code>#project</code> &middot; <code>!</code> critical &middot; <code>@personal</code> &middot; <code>today</code>, <code>tomorrow</code>, <code>friday</code></p>
+  </aside>
+  <div class="main">
   <nav class="tabs" role="tablist" id="tabs"></nav>
   <div class="bar">
     <div class="seg" id="seg" role="group" aria-label="Show">
@@ -231,6 +257,7 @@ form.add,.tally button{background:var(--card)}.tally button{border:1px solid var
     </div>
   </div>
   <main id="list"><div class="empty"><b>Loading your tasks…</b></div></main>
+  </div>
 </div>
 <datalist id="projlist"></datalist><datalist id="companylist"></datalist><datalist id="catlist"></datalist>
 <div class="toast" id="toast" hidden role="status"><span></span><button type="button">Undo</button></div>
