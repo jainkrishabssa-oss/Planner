@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>My Planner</title>
-<meta name="theme-color" content="#1d2bd8">
+<meta name="theme-color" content="#522B5B" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#190019" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -20,7 +21,7 @@
    PICTURE: the live task list itself, under a large date and three tallies
    COLOUR and TYPE: white sheet, ink, ultramarine accent, red only for overdue; Inter Tight + Inter
    LAYOUT: one 760px column: date, add bar, tabs, list; wraps cleanly on phones */
-:root{color-scheme:light dark;--bg:light-dark(#fff,#0d0e18);--ink:light-dark(#14110f,#ecebf3);--mute:light-dark(#6b6f7b,#9a9cad);--line:light-dark(#e6e7ec,#262838);--soft:light-dark(#f4f5f8,#171928);--acc:light-dark(#1d2bd8,#8d97ff);--red:light-dark(#c8231a,#ff7a70);--reds:light-dark(#fdecea,#3a1615);--amb:light-dark(#a15c00,#f3b459);--ambs:light-dark(#fdf3e2,#33260f);--teal:light-dark(#0f766e,#5fd3c6);--page:light-dark(#f3f4f7,#0b0c14);--card:light-dark(#fff,#151726)}
+:root{color-scheme:light dark;/* palette: #190019 #2B124C #522B5B #854F6C #DFB6B2 #FBE4D8 */--bg:light-dark(#FFF8F4,#24113A);--ink:light-dark(#190019,#FBE4D8);--mute:light-dark(#854F6C,#B996AE);--line:light-dark(#EFD3CB,#3B2152);--soft:light-dark(#F8DDD3,#2F1747);--acc:light-dark(#522B5B,#DFB6B2);--red:light-dark(#A3263D,#F4A7B4);--reds:light-dark(#F6D0CF,#4C1A2E);--amb:light-dark(#8E5420,#EBC08F);--ambs:light-dark(#F6DFC9,#45293A);--teal:light-dark(#C0727F,#B9A4E6);--page:light-dark(#FBE4D8,#190019);--card:light-dark(#FFF8F4,#24113A);--shadow:light-dark(rgb(82 43 91 / .16),rgb(0 0 0 / .45))}
 :root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
 *{box-sizing:border-box;min-width:0}
 body{margin:0;background:var(--page);color:var(--ink);font:16px/1.5 Inter,system-ui,sans-serif;overflow-x:clip}
@@ -111,7 +112,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 @media(prefers-reduced-motion:reduce){.task.new{animation:none}}
 .hdr-r{display:flex;gap:8px;align-items:center;position:relative}
 .acct{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:none;color:var(--ink);cursor:pointer;display:grid;place-items:center}
-.menu{position:absolute;right:0;top:48px;z-index:5;background:var(--bg);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgb(0 0 0/.15);padding:6px;min-width:230px}
+.menu{position:fixed;right:auto;top:0;left:0;z-index:50;background:var(--bg);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgb(0 0 0/.15);padding:6px;min-width:230px}
 .menu[hidden]{display:none}
 .menu .who{font-size:13px;color:var(--mute);padding:8px 10px;border-bottom:1px solid var(--line);margin-bottom:4px;overflow-wrap:anywhere}
 .menu button{display:block;width:100%;text-align:left;border:0;background:none;color:var(--ink);font:500 15px Inter,sans-serif;padding:0 10px;min-height:44px;border-radius:8px;cursor:pointer}
@@ -126,15 +127,15 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .gate .row{display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px}
 @media(display-mode:standalone){.wrap{padding-top:max(20px,env(safe-area-inset-top))}}
 /* colour-coded sheets, after paper planners */
-.b-red{--band:light-dark(#fde2e1,#3d1d1c);--bink:light-dark(#9b1c14,#ffb4ad)}
-.b-orange{--band:light-dark(#fde9d2,#3a2714);--bink:light-dark(#8a4b06,#f7c48a)}
-.b-yellow{--band:light-dark(#fbf1c7,#35301a);--bink:light-dark(#735800,#f0d77a)}
-.b-green{--band:light-dark(#dcf1df,#17301d);--bink:light-dark(#1f6b33,#9fdcac)}
-.b-teal{--band:light-dark(#d6f0ee,#123230);--bink:light-dark(#0f625b,#8fdcd3)}
-.b-blue{--band:light-dark(#dbe9fb,#16263d);--bink:light-dark(#1d4f91,#a9c8f5)}
-.b-purple{--band:light-dark(#ebe2fa,#2a1f3d);--bink:light-dark(#5b3597,#cdb6f5)}
-.b-pink{--band:light-dark(#fbe1ee,#3a1a2b);--bink:light-dark(#97275f,#f5b0d2)}
-.b-gray{--band:light-dark(#eceef2,#22252f);--bink:light-dark(#4a4f5c,#b8bcc8)}
+.b-red{--band:light-dark(#F5CDCB,#4C1A2E);--bink:light-dark(#7D1D33,#F4B6C0)}
+.b-orange{--band:light-dark(#F7D6C8,#4A2233);--bink:light-dark(#7A3424,#F5C6B4)}
+.b-yellow{--band:light-dark(#F5E1CF,#43283C);--bink:light-dark(#6B4426,#EED3B4)}
+.b-green{--band:light-dark(#DDE3D2,#262F2A);--bink:light-dark(#3E5A36,#C3D6B8)}
+.b-teal{--band:light-dark(#D6E1E2,#20303B);--bink:light-dark(#2F5560,#B5D2D9)}
+.b-blue{--band:light-dark(#DCD7EF,#2B1F52);--bink:light-dark(#3B2D73,#CEC5F2)}
+.b-purple{--band:light-dark(#E6D3EA,#3B1C4A);--bink:light-dark(#522B5B,#E3C6EC)}
+.b-pink{--band:light-dark(#F0D0D8,#46203C);--bink:light-dark(#854F6C,#EEC0D2)}
+.b-gray{--band:light-dark(#EFDCD5,#2F1D3B);--bink:light-dark(#5E4A55,#DAC5CF)}
 form.add,.tally button{background:var(--card)}.tally button{border:1px solid var(--line)}
 .seg button[aria-pressed=true]{background:var(--card)}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin:14px 0}
@@ -192,6 +193,31 @@ form.add,.tally button{background:var(--card)}.tally button{border:1px solid var
   #list.v-routines>.radd,#list.v-routines>.empty,#list.v-routines>datalist{grid-column:1/-1}
   #list.v-routines>.card{margin:8px 0}
 }
+/* aesthetic layer: plum glow, soft depth */
+body{background:radial-gradient(1200px 600px at 10% -10%,light-dark(#F3C9C4,#2B124C),transparent 70%),radial-gradient(900px 500px at 100% 0%,light-dark(#EFD0E0,#2a0f3a),transparent 65%),var(--page);background-attachment:fixed}
+.dow{color:var(--mute);letter-spacing:.01em}
+h1{color:var(--ink)}
+.card,.tally button,form.add{box-shadow:0 1px 2px var(--shadow),0 14px 30px -18px var(--shadow)}
+.card{border-radius:16px;border-color:color-mix(in srgb,var(--line) 70%,transparent)}
+form.add{border:1.5px solid color-mix(in srgb,var(--acc) 55%,transparent);border-radius:18px}
+.tally button{border-radius:14px}
+.tally .od b{color:var(--red)}
+.btn{border-radius:12px;box-shadow:0 6px 16px -8px var(--acc)}
+.btn:hover{filter:brightness(1.08)}
+.chip{border-color:var(--line);background:color-mix(in srgb,var(--card) 60%,transparent)}
+.chip[aria-pressed=true]{background:var(--acc);color:var(--bg);border-color:var(--acc)}
+.tab[aria-selected=true]{border-color:var(--acc)}
+.seg{background:color-mix(in srgb,var(--soft) 80%,transparent)}
+.task.done .ck i,.box[aria-pressed=true]{background:var(--acc);border-color:var(--acc)}
+.ck i,.box{border-color:color-mix(in srgb,var(--mute) 70%,transparent)}
+.task.critical .ck i{border-color:var(--red)}.task.high .ck i{border-color:var(--amb)}
+.sync.ok i{background:var(--acc)}
+.cell.cur{background:color-mix(in srgb,var(--soft) 85%,transparent)}
+.wk .card.now{border-color:var(--acc)}
+.toast{background:var(--ink);color:var(--bg)}
+.link{color:var(--acc)}
+.meta .td{color:var(--acc)}
+::selection{background:#DFB6B2;color:#190019}
 </style>
 </head>
 <body>
