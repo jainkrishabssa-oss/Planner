@@ -277,10 +277,7 @@ addEventListener('online',()=>showStatus());addEventListener('offline',()=>showS
 
 /* ---------- account menu: backup, sign out ---------- */
 const menu=$('#menu');
-function placeMenu(){const r=$('#acct').getBoundingClientRect(),w=menu.offsetWidth||240;
-  menu.style.top=Math.round(r.bottom+8)+'px';menu.style.left=Math.round(Math.min(Math.max(8,r.right-w),innerWidth-w-8))+'px'}
-$('#acct').addEventListener('click',()=>{menu.hidden=!menu.hidden;if(!menu.hidden)placeMenu()});
-addEventListener('resize',()=>{if(!menu.hidden)placeMenu()});addEventListener('scroll',()=>{if(!menu.hidden)menu.hidden=true},{passive:true});
+$('#acct').addEventListener('click',()=>{menu.hidden=!menu.hidden});
 document.addEventListener('click',e=>{if(!menu.hidden&&!e.target.closest('#menu,#acct'))menu.hidden=true});
 $('#m-export').addEventListener('click',()=>{const data={app:'my-planner',version:1,exported:new Date().toISOString(),tasks:[...tasks.values()],projects:[...projects.values()],routines:[...routines.values()]};
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));a.download='my-planner-backup-'+today+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);menu.hidden=true});
