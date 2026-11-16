@@ -20,10 +20,10 @@
    PICTURE: the live task list itself, under a large date and three tallies
    COLOUR and TYPE: white sheet, ink, ultramarine accent, red only for overdue; Inter Tight + Inter
    LAYOUT: one 760px column: date, add bar, tabs, list; wraps cleanly on phones */
-:root{color-scheme:light dark;--bg:light-dark(#fff,#0d0e18);--ink:light-dark(#14110f,#ecebf3);--mute:light-dark(#6b6f7b,#9a9cad);--line:light-dark(#e6e7ec,#262838);--soft:light-dark(#f4f5f8,#171928);--acc:light-dark(#1d2bd8,#8d97ff);--red:light-dark(#c8231a,#ff7a70);--reds:light-dark(#fdecea,#3a1615);--amb:light-dark(#a15c00,#f3b459);--ambs:light-dark(#fdf3e2,#33260f);--teal:light-dark(#0f766e,#5fd3c6)}
+:root{color-scheme:light dark;--bg:light-dark(#fff,#0d0e18);--ink:light-dark(#14110f,#ecebf3);--mute:light-dark(#6b6f7b,#9a9cad);--line:light-dark(#e6e7ec,#262838);--soft:light-dark(#f4f5f8,#171928);--acc:light-dark(#1d2bd8,#8d97ff);--red:light-dark(#c8231a,#ff7a70);--reds:light-dark(#fdecea,#3a1615);--amb:light-dark(#a15c00,#f3b459);--ambs:light-dark(#fdf3e2,#33260f);--teal:light-dark(#0f766e,#5fd3c6);--page:light-dark(#f3f4f7,#0b0c14);--card:light-dark(#fff,#151726)}
 :root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
 *{box-sizing:border-box;min-width:0}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Inter,system-ui,sans-serif;overflow-x:clip}
+body{margin:0;background:var(--page);color:var(--ink);font:16px/1.5 Inter,system-ui,sans-serif;overflow-x:clip}
 .wrap{max-width:760px;margin:0 auto;padding:clamp(20px,4vw,40px) max(4vw,16px) 110px}
 header{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
 .dow{color:var(--acc);font-weight:600;font-size:15px}
@@ -45,7 +45,11 @@ form.add{border:1.5px solid var(--ink);border-radius:14px;padding:6px 6px 10px}
 .chip{min-height:40px;padding:0 13px;border-radius:99px;border:1px solid var(--line);background:transparent;color:var(--ink);font:500 14px Inter,sans-serif;cursor:pointer;white-space:nowrap}
 .chip[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 input.chip{cursor:text;font-size:16px}
-#cdate{width:150px}#proj{width:170px}
+#cdate{width:150px}#proj{width:200px;cursor:pointer;padding-right:8px}
+select.chip{appearance:auto;font-size:15px}
+#q.nudge::placeholder{color:var(--red)}
+.add.shake{animation:shake .35s}@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+@media(prefers-reduced-motion:reduce){.add.shake{animation:none}}
 .hint{font-size:13px;color:var(--mute);margin:8px 2px 0}
 code{font:500 12px ui-monospace,monospace;background:var(--soft);padding:1px 5px;border-radius:5px}
 .tabs{display:flex;gap:2px;margin:26px 0 0;border-bottom:1px solid var(--line);overflow-x:auto}
@@ -121,6 +125,50 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .gate .msg{min-height:22px;font-size:14px;color:var(--red)}
 .gate .row{display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px}
 @media(display-mode:standalone){.wrap{padding-top:max(20px,env(safe-area-inset-top))}}
+/* colour-coded sheets, after paper planners */
+.b-red{--band:light-dark(#fde2e1,#3d1d1c);--bink:light-dark(#9b1c14,#ffb4ad)}
+.b-orange{--band:light-dark(#fde9d2,#3a2714);--bink:light-dark(#8a4b06,#f7c48a)}
+.b-yellow{--band:light-dark(#fbf1c7,#35301a);--bink:light-dark(#735800,#f0d77a)}
+.b-green{--band:light-dark(#dcf1df,#17301d);--bink:light-dark(#1f6b33,#9fdcac)}
+.b-teal{--band:light-dark(#d6f0ee,#123230);--bink:light-dark(#0f625b,#8fdcd3)}
+.b-blue{--band:light-dark(#dbe9fb,#16263d);--bink:light-dark(#1d4f91,#a9c8f5)}
+.b-purple{--band:light-dark(#ebe2fa,#2a1f3d);--bink:light-dark(#5b3597,#cdb6f5)}
+.b-pink{--band:light-dark(#fbe1ee,#3a1a2b);--bink:light-dark(#97275f,#f5b0d2)}
+.b-gray{--band:light-dark(#eceef2,#22252f);--bink:light-dark(#4a4f5c,#b8bcc8)}
+form.add,.tally button{background:var(--card)}.tally button{border:1px solid var(--line)}
+.seg button[aria-pressed=true]{background:var(--card)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin:14px 0}
+.card>h2{margin:0;padding:9px 14px;background:var(--band);color:var(--bink);font:600 13px Inter,sans-serif;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card .task{padding-right:10px}.card>.task:last-of-type{border-bottom:0}
+.card .proj{padding:14px}.card .proj:last-child{border-bottom:0}.card .inproj{margin:6px 14px 12px}
+.ck i{border-radius:6px}
+.task.done .t{color:var(--mute)}
+.pad{padding:10px 14px;margin:0}
+.wkbar{display:flex;align-items:center;gap:8px;margin:16px 0 0;flex-wrap:wrap}
+.wkbar b{font:600 17px 'Inter Tight',sans-serif;min-width:150px;text-align:center}
+.wk{display:grid;grid-template-columns:repeat(auto-fill,minmax(225px,1fr));gap:12px;margin-top:12px}
+.wk .card{margin:0;display:flex;flex-direction:column}
+.wk .card.now{border:2px solid var(--acc)}
+.wk .card>.task{border-bottom:1px solid var(--line)}
+.wk .edit{grid-template-columns:minmax(0,1fr);padding:2px 10px 14px}
+.wk .addd{align-self:flex-start;margin:auto 6px 2px}
+.radd{display:flex;gap:8px;margin:16px 0 4px;flex-wrap:wrap}
+.radd input,.radd select{font:16px Inter,sans-serif;padding:0 12px;min-height:44px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)}
+.radd input{flex:1 1 220px}
+.rgrid{overflow-x:auto}
+.rrow{display:grid;grid-template-columns:minmax(150px,1fr) repeat(var(--n),var(--cw));align-items:stretch;border-bottom:1px solid var(--line);min-height:46px;padding-right:8px;min-width:calc(158px + var(--n) * var(--cw))}
+.rgrid>.rrow:last-child,.rgrid>.redit:last-child{border-bottom:0}
+.rhead{min-height:30px;font-size:12px;color:var(--mute);font-weight:600}
+.rname{border:0;background:none;color:var(--ink);font:500 15px Inter,sans-serif;text-align:left;padding:8px 14px;cursor:pointer;overflow-wrap:anywhere}
+.cell{display:grid;place-items:center}.cell.cur{background:var(--soft)}
+.box{width:22px;height:22px;border-radius:6px;border:2px solid var(--mute);background:none;padding:0;cursor:pointer;display:grid;place-items:center;color:var(--card)}
+.box[aria-pressed=true]{background:var(--acc);border-color:var(--acc)}
+.box:disabled{opacity:.28;cursor:default}
+.redit{padding:6px 14px 14px;border-bottom:1px solid var(--line)}
+@media(max-width:600px){.rrow{grid-template-columns:minmax(128px,1fr) repeat(var(--n),var(--cw));min-width:calc(136px + var(--n) * var(--cw))}.radd input{flex-basis:100%}.radd select{flex:1}}
+.tab{flex:none}
+.rname,.rhead>span:first-child{position:sticky;left:0;background:var(--card);z-index:1}
+@media(max-width:600px){.rrow{--cw:30px!important}}
 </style>
 </head>
 <body>
@@ -172,7 +220,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
         <button type="button" class="chip" data-pri="high">High</button>
         <button type="button" class="chip" data-pri="normal">Normal</button>
       </div>
-      <input class="chip" id="proj" list="projlist" placeholder="Project (optional)" aria-label="Project">
+      <select class="chip" id="proj" aria-label="Project"><option value="">No project</option></select>
     </div>
   </form>
   <p class="hint">Shortcuts while typing: <code>#project</code> &middot; <code>!</code> critical &middot; <code>@personal</code> &middot; <code>today</code>, <code>tomorrow</code>, <code>friday</code></p>

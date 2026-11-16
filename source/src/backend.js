@@ -21,41 +21,45 @@ export function firebaseBackend(config) {
     signUp: (e, p) => createUserWithEmailAndPassword(auth, e, p),
     reset: e => sendPasswordResetEmail(auth, e),
     signOut: () => { unsubs.forEach(u => u()); unsubs = []; return signOut(auth); },
-    subscribe(onTasks, onProjects, onStatus, onErr) {
+    subscribe(on, onStatus, onErr) {
       unsubs.forEach(u => u()); unsubs = [];
-      const st = { tasks: null, projects: null };
-      const report = () => { const a = st.tasks, b = st.projects; if (!a || !b) return;
-        onStatus({ fromCache: a.fromCache || b.fromCache, pending: a.pending || b.pending }); };
+      const st = { tasks: null, projects: null, routines: null };
+      const report = () => { const v = Object.values(st); if (v.some(x => !x)) return;
+        onStatus({ fromCache: v.some(x => x.fromCache), pending: v.some(x => x.pending) }); };
       const watch = (name, cb) => onSnapshot(collection(db, 'users', uid, name), { includeMetadataChanges: true }, snap => {
         st[name] = { fromCache: snap.metadata.fromCache, pending: snap.metadata.hasPendingWrites };
         cb(snap.docs.map(d => ({ ...d.data(), id: d.id }))); report();
       }, fail(onErr));
-      unsubs.push(watch('tasks', onTasks), watch('projects', onProjects));
+      unsubs.push(watch('tasks', on.tasks), watch('projects', on.projects), watch('routines', on.routines));
     },
     // Writes resolve only when the server confirms; offline they wait, so don't await them.
     putTask: (t, onErr) => { setDoc(doc(db, 'users', uid, 'tasks', t.id), body(t)).catch(fail(onErr)); },
     delTask: (id, onErr) => { deleteDoc(doc(db, 'users', uid, 'tasks', id)).catch(fail(onErr)); },
     putProject: (p, onErr) => { setDoc(doc(db, 'users', uid, 'projects', p.id), body(p)).catch(fail(onErr)); },
     delProject: (id, onErr) => { deleteDoc(doc(db, 'users', uid, 'projects', id)).catch(fail(onErr)); },
+    putRoutine: (r, onErr) => { setDoc(doc(db, 'users', uid, 'routines', r.id), body(r)).catch(fail(onErr)); },
+    delRoutine: (id, onErr) => { deleteDoc(doc(db, 'users', uid, 'routines', id)).catch(fail(onErr)); },
   };
 }
 
 // Demo mode: everything stays in this browser. Used to try the app before Firebase is set up.
 export function demoBackend() {
-  const K = { tasks: 'mp.demo.tasks', projects: 'mp.demo.projects' };
+  const K = { tasks: 'mp.demo.tasks', projects: 'mp.demo.projects', routines: 'mp.demo.routines' };
   const load = k => { try { return JSON.parse(localStorage.getItem(K[k]) || '[]'); } catch (e) { return []; } };
-  const data = { tasks: new Map(load('tasks').map(x => [x.id, x])), projects: new Map(load('projects').map(x => [x.id, x])) };
+  const data = {}; Object.keys(K).forEach(k => { data[k] = new Map(load(k).map(x => [x.id, x])); });
   let cbs = {};
   const save = k => { try { localStorage.setItem(K[k], JSON.stringify([...data[k].values()])); } catch (e) {} ;
-    (k === 'tasks' ? cbs.t : cbs.p)?.([...data[k].values()].map(x => ({ ...x }))); };
+    cbs[k]?.([...data[k].values()].map(x => JSON.parse(JSON.stringify(x)))); };
   return {
     kind: 'demo',
     onUser(cb) { setTimeout(() => cb({ uid: 'demo', email: 'Demo mode' }), 0); return () => {}; },
     signOut: async () => {},
-    subscribe(onTasks, onProjects, onStatus) { cbs = { t: onTasks, p: onProjects }; save('tasks'); save('projects'); onStatus({ demo: true }); },
+    subscribe(on, onStatus) { cbs = on; Object.keys(K).forEach(save); onStatus({ demo: true }); },
     putTask: t => { data.tasks.set(t.id, { ...t }); save('tasks'); },
     delTask: id => { data.tasks.delete(id); save('tasks'); },
     putProject: p => { data.projects.set(p.id, { ...p }); save('projects'); },
     delProject: id => { data.projects.delete(id); save('projects'); },
+    putRoutine: r => { data.routines.set(r.id, JSON.parse(JSON.stringify(r))); save('routines'); },
+    delRoutine: id => { data.routines.delete(id); save('routines'); },
   };
 }

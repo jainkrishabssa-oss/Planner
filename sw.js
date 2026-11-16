@@ -1,6 +1,6 @@
 // Offline support: keeps the app's files on the device so it opens without internet.
 // Change VERSION whenever you upload new app files, so devices pick up the update.
-const VERSION = 'planner-v1';
+const VERSION = 'planner-v2';
 const SHELL = ['./', './index.html', './app.js', './config.js', './manifest.webmanifest',
   './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png', './icons/icon-maskable-512.png'];
 
